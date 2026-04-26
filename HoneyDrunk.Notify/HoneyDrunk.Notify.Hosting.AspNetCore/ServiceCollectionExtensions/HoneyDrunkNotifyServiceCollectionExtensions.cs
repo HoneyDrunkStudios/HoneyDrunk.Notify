@@ -50,7 +50,7 @@ public static class HoneyDrunkNotifyServiceCollectionExtensions
             .Configure<IOptions<NotifyOptions>>((templates, hostingOptions) =>
             {
                 var configured = hostingOptions.Value.Templates;
-                templates.RootPath = configured.RootPath ?? Path.Combine(AppContext.BaseDirectory, "templates");
+                templates.RootPath = configured.RootPath ?? Path.Join(AppContext.BaseDirectory, "templates");
                 templates.Extension = configured.Extension;
                 templates.CacheEnabled = configured.CacheEnabled;
                 templates.CacheTtl = configured.CacheTtl;

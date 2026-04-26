@@ -21,7 +21,7 @@ public sealed class EmailFileTemplateRendererTests : IDisposable
     /// </summary>
     public EmailFileTemplateRendererTests()
     {
-        _tempRoot = Path.Combine(Path.GetTempPath(), "hd-notify-email-tests-" + Guid.NewGuid().ToString("N"));
+        _tempRoot = Path.Join(Path.GetTempPath(), "hd-notify-email-tests-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(_tempRoot);
 
         _timeProvider = new FakeTimeProvider(DateTimeOffset.UtcNow);
@@ -215,10 +215,10 @@ public sealed class EmailFileTemplateRendererTests : IDisposable
     [Fact]
     public async Task RenderEmailAsync_SubdirectoryTemplate_IsResolved()
     {
-        var subDir = Path.Combine(_tempRoot, "account");
+        var subDir = Path.Join(_tempRoot, "account");
         Directory.CreateDirectory(subDir);
-        File.WriteAllText(Path.Combine(subDir, "verify.subject.txt"), "Verify {{Email}}");
-        File.WriteAllText(Path.Combine(subDir, "verify.body.txt"), "Click here to verify {{Email}}");
+        File.WriteAllText(Path.Join(subDir, "verify.subject.txt"), "Verify {{Email}}");
+        File.WriteAllText(Path.Join(subDir, "verify.body.txt"), "Click here to verify {{Email}}");
 
         var model = new Dictionary<string, object?> { ["Email"] = "user@test.com" };
 
@@ -230,7 +230,7 @@ public sealed class EmailFileTemplateRendererTests : IDisposable
 
     private void WriteFile(string name, string content)
     {
-        File.WriteAllText(Path.Combine(_tempRoot, name), content);
+        File.WriteAllText(Path.Join(_tempRoot, name), content);
     }
 
     private sealed class FakeTimeProvider(DateTimeOffset initial) : TimeProvider

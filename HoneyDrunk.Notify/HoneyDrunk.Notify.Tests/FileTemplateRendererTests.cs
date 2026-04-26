@@ -20,7 +20,7 @@ public sealed class FileTemplateRendererTests : IDisposable
     /// </summary>
     public FileTemplateRendererTests()
     {
-        _tempRoot = Path.Combine(Path.GetTempPath(), "hd-notify-tests-" + Guid.NewGuid().ToString("N"));
+        _tempRoot = Path.Join(Path.GetTempPath(), "hd-notify-tests-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(_tempRoot);
 
         _timeProvider = new FakeTimeProvider(DateTimeOffset.UtcNow);
@@ -192,9 +192,9 @@ public sealed class FileTemplateRendererTests : IDisposable
     [Fact]
     public async Task Subdirectory_templates_are_resolved()
     {
-        var subDir = Path.Combine(_tempRoot, "emails");
+        var subDir = Path.Join(_tempRoot, "emails");
         Directory.CreateDirectory(subDir);
-        File.WriteAllText(Path.Combine(subDir, "welcome.txt"), "Welcome {{Name}}");
+        File.WriteAllText(Path.Join(subDir, "welcome.txt"), "Welcome {{Name}}");
 
         var model = new Dictionary<string, object?> { ["Name"] = "Eve" };
 
@@ -207,7 +207,7 @@ public sealed class FileTemplateRendererTests : IDisposable
 
     private void WriteTemplate(string name, string content)
     {
-        File.WriteAllText(Path.Combine(_tempRoot, name + ".txt"), content);
+        File.WriteAllText(Path.Join(_tempRoot, name + ".txt"), content);
     }
 
     /// <summary>

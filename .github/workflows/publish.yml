@@ -54,6 +54,7 @@ jobs:
       configuration: 'Release'
       runs-on: 'ubuntu-latest'
       project-path: 'HoneyDrunk.Notify/HoneyDrunk.Notify.slnx'
+      package-version: ${{ needs.prepare.outputs.version }}
       enable-nuget-publish: true
       nuget-source: 'https://api.nuget.org/v3/index.json'
       actions-ref: 'main'

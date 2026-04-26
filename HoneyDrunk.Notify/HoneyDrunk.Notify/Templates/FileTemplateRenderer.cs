@@ -41,7 +41,7 @@ internal sealed class FileTemplateRenderer(
         if (!relativePath.EndsWith(templateOptions.Extension, StringComparison.OrdinalIgnoreCase))
             relativePath += templateOptions.Extension;
 
-        var fullPath = Path.GetFullPath(Path.Combine(rootPath, relativePath));
+        var fullPath = Path.GetFullPath(Path.Join(rootPath, relativePath));
 
         if (!fullPath.StartsWith(rootPath, StringComparison.OrdinalIgnoreCase))
         {

@@ -16,7 +16,6 @@ on:
   workflow_run:
     workflows: ["Publish to NuGet"]
     types: [completed]
-    branches: [main]
   workflow_dispatch:
     inputs:
       environment:
@@ -54,7 +53,7 @@ jobs:
         run: dotnet build HoneyDrunk.Notify/HoneyDrunk.Notify.slnx -c Release --no-restore
 
       - name: Test
-        run: dotnet test HoneyDrunk.Notify/HoneyDrunk.Notify.slnx -c Release --no-build
+        run: dotnet test HoneyDrunk.Notify/HoneyDrunk.Notify.slnx -c Release --no-build --no-restore
 
       - name: Publish
         run: |

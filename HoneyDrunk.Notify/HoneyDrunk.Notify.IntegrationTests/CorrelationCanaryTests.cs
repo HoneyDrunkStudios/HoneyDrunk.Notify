@@ -57,7 +57,7 @@ public sealed class CorrelationCanaryTests : IDisposable
             },
             templates =>
             {
-                templates.RootPath = Path.Combine(Path.GetTempPath(), "hd-canary-" + Guid.NewGuid().ToString("N"));
+                templates.RootPath = Path.Join(Path.GetTempPath(), "hd-canary-" + Guid.NewGuid().ToString("N"));
             });
 
         services.AddHoneyDrunkNotifyInMemoryQueue();

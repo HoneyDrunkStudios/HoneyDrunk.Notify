@@ -48,7 +48,7 @@ internal sealed class EmailFileTemplateRenderer(
 
     private static string ResolvePath(string rootPath, string relativePath)
     {
-        var fullPath = Path.GetFullPath(Path.Combine(rootPath, relativePath));
+        var fullPath = Path.GetFullPath(Path.Join(rootPath, relativePath));
 
         if (!fullPath.StartsWith(rootPath, StringComparison.OrdinalIgnoreCase))
         {

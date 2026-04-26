@@ -16,9 +16,8 @@ internal sealed class NoOpNotificationSender(ILogger<NoOpNotificationSender> log
         ArgumentNullException.ThrowIfNull(envelope);
 
         logger.LogWarning(
-            "No real sender configured. Notification {NotificationId} to {Address} via {Channel} was not delivered.",
+            "No real sender configured. Notification {NotificationId} via {Channel} was not delivered.",
             envelope.NotificationId,
-            envelope.Recipient.Address,
             envelope.Channel);
 
         var outcome = DeliveryOutcome.Failed(
