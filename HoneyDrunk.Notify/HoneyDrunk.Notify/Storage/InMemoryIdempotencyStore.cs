@@ -17,19 +17,36 @@ internal sealed class InMemoryIdempotencyStore : IIdempotencyStore
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(idempotencyKey);
 
-        var entry = _entries.AddOrUpdate(
-            idempotencyKey,
-            _ => new IdempotencyEntry(now, null),
-            (_, existing) =>
+        var newEntry = new IdempotencyEntry(now, null);
+
+        // First-time claim: TryAdd returns true only for the caller that actually inserted.
+        if (_entries.TryAdd(idempotencyKey, newEntry))
+        {
+            return Task.FromResult(true);
+        }
+
+        // Existing entry — only the caller whose compare-exchange wins gets a fresh claim.
+        // This guards against same-tick races where multiple callers pass identical `now` values:
+        // timestamp equality alone cannot distinguish the original claimant from a concurrent duplicate.
+        while (_entries.TryGetValue(idempotencyKey, out var existing))
+        {
+            // Active claim within window — duplicate, reject.
+            if (now - existing.ClaimedAt < window)
             {
-                if (now - existing.ClaimedAt < window)
-                    return existing;
+                return Task.FromResult(false);
+            }
 
-                return new IdempotencyEntry(now, null);
-            });
+            // Expired claim — try to atomically replace it. Only one concurrent caller can win.
+            if (_entries.TryUpdate(idempotencyKey, newEntry, existing))
+            {
+                return Task.FromResult(true);
+            }
 
-        var isFreshClaim = entry.ClaimedAt == now && entry.NotificationId is null;
-        return Task.FromResult(isFreshClaim);
+            // TryUpdate failed because another caller mutated the entry — re-read and retry.
+        }
+
+        // Entry was removed between TryGetValue iterations; reattempt as a fresh add.
+        return Task.FromResult(_entries.TryAdd(idempotencyKey, newEntry));
     }
 
     /// <inheritdoc />

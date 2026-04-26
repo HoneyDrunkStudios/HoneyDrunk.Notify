@@ -75,6 +75,24 @@ public sealed class SimpleTokenReplacerTests
     }
 
     /// <summary>
+    /// Verifies that dot-separated tokens (matching the keys produced by <see cref="TemplateModelFlattener"/>
+    /// for nested dictionaries) are replaced.
+    /// </summary>
+    [Fact]
+    public void Dot_separated_tokens_for_nested_keys_are_replaced()
+    {
+        var result = SimpleTokenReplacer.Replace(
+            "City: {{Address.City}}, ZIP: {{Address.Postal.Code}}.",
+            new Dictionary<string, string>
+            {
+                ["Address.City"] = "Vilnius",
+                ["Address.Postal.Code"] = "01108",
+            });
+
+        result.Should().Be("City: Vilnius, ZIP: 01108.");
+    }
+
+    /// <summary>
     /// Verifies that invalid token syntax is not replaced.
     /// </summary>
     [Fact]

@@ -4,7 +4,9 @@ namespace HoneyDrunk.Notify.Templates;
 
 /// <summary>
 /// Replaces <c>{{TokenName}}</c> placeholders in a template string with values from a dictionary.
-/// Token names must be alphanumeric or underscore. Missing tokens are left unchanged.
+/// Token names may contain letters, digits, underscores, and dots (e.g. <c>{{Address.City}}</c>) to
+/// match the dot-separated keys produced by <see cref="TemplateModelFlattener"/>. Missing tokens are
+/// left unchanged.
 /// </summary>
 internal static partial class SimpleTokenReplacer
 {
@@ -26,7 +28,7 @@ internal static partial class SimpleTokenReplacer
         });
     }
 
-    // Match {{AlphaNumeric_Underscore}} tokens
-    [GeneratedRegex(@"\{\{([A-Za-z0-9_]+)\}\}", RegexOptions.Compiled | RegexOptions.CultureInvariant)]
+    // Match {{AlphaNumeric_Underscore.Dot}} tokens. Dots support nested keys from TemplateModelFlattener.
+    [GeneratedRegex(@"\{\{([A-Za-z0-9_.]+)\}\}", RegexOptions.Compiled | RegexOptions.CultureInvariant)]
     private static partial Regex TokenPattern();
 }

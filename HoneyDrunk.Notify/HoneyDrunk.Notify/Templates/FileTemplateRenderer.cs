@@ -43,7 +43,11 @@ internal sealed class FileTemplateRenderer(
 
         var fullPath = Path.GetFullPath(Path.Join(rootPath, relativePath));
 
-        if (!fullPath.StartsWith(rootPath, StringComparison.OrdinalIgnoreCase))
+        // Reject any path that resolves outside rootPath. Use Path.GetRelativePath rather than
+        // StartsWith(rootPath) — the latter is bypassable when rootPath is a prefix of a sibling
+        // directory name (e.g. /templates vs /templates_evil/x).
+        var relative = Path.GetRelativePath(rootPath, fullPath);
+        if (relative.StartsWith("..", StringComparison.Ordinal) || Path.IsPathRooted(relative))
         {
             throw new InvalidOperationException(
                 $"Template key '{templateKey}' resolves outside the template root directory. Path traversal is not allowed.");

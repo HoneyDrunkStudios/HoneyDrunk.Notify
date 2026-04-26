@@ -42,6 +42,13 @@ public sealed class NotificationDispatcher(
         activity?.SetTag("tenant.id", envelope.TenantId);
 
         var runtimeOptions = options.Value;
+
+        if (runtimeOptions.MaxAttempts < 1)
+        {
+            throw new InvalidOperationException(
+                $"NotifyRuntimeOptions.MaxAttempts must be >= 1 (configured: {runtimeOptions.MaxAttempts}). At least one attempt is required to dispatch a notification.");
+        }
+
         DeliveryOutcome? lastOutcome = null;
 
         for (var attempt = 0; attempt < runtimeOptions.MaxAttempts; attempt++)

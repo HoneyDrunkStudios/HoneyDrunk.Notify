@@ -1,7 +1,10 @@
 # Build context: HoneyDrunk.Notify/ (solution root)
 
 FROM mcr.microsoft.com/dotnet/runtime:10.0 AS base
-USER $APP_UID
+# Run as a non-root user. The dotnet/runtime image does not define APP_UID (only dotnet/aspnet does),
+# so pin the UID explicitly to a non-root value. Linux's USER directive accepts numeric UIDs without
+# requiring a corresponding /etc/passwd entry.
+USER 1654
 WORKDIR /app
 
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
