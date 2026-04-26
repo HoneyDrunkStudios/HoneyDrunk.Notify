@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+    <LangVersion>latest</LangVersion>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\HoneyDrunk.Notify.Abstractions\HoneyDrunk.Notify.Abstractions.csproj" />
+    <ProjectReference Include="..\HoneyDrunk.Notify.Queue.Abstractions\HoneyDrunk.Notify.Queue.Abstractions.csproj" />
+    <ProjectReference Include="..\HoneyDrunk.Notify.Queue.AzureStorage\HoneyDrunk.Notify.Queue.AzureStorage.csproj" />
+    <ProjectReference Include="..\HoneyDrunk.Notify.Queue.InMemory\HoneyDrunk.Notify.Queue.InMemory.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="HoneyDrunk.Standards" Version="0.2.7">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.7" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Update="Microsoft.CodeAnalysis.NetAnalyzers" Version="10.0.202" />
+  </ItemGroup>
+
+</Project>
