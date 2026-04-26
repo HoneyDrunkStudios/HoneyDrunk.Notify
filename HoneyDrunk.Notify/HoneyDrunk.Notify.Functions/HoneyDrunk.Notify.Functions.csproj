@@ -1,0 +1,45 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <AzureFunctionsVersion>v4</AzureFunctionsVersion>
+    <OutputType>Exe</OutputType>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <LangVersion>latest</LangVersion>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\HoneyDrunk.Notify\HoneyDrunk.Notify.csproj" />
+    <ProjectReference Include="..\HoneyDrunk.Notify.Abstractions\HoneyDrunk.Notify.Abstractions.csproj" />
+    <ProjectReference Include="..\HoneyDrunk.Notify.Hosting.AspNetCore\HoneyDrunk.Notify.Hosting.AspNetCore.csproj" />
+    <ProjectReference Include="..\HoneyDrunk.Notify.Providers.Email.Smtp\HoneyDrunk.Notify.Providers.Email.Smtp.csproj" />
+    <ProjectReference Include="..\HoneyDrunk.Notify.Providers.Email.Resend\HoneyDrunk.Notify.Providers.Email.Resend.csproj" />
+    <ProjectReference Include="..\HoneyDrunk.Notify.Providers.Sms.Twilio\HoneyDrunk.Notify.Providers.Sms.Twilio.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="HoneyDrunk.Standards" Version="0.2.7">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="HoneyDrunk.Kernel" Version="0.4.0" />
+    <PackageReference Include="HoneyDrunk.Kernel.Abstractions" Version="0.4.0" />
+    <PackageReference Include="HoneyDrunk.Vault.EventGrid" Version="0.3.0" />
+    <PackageReference Include="HoneyDrunk.Vault.Providers.AppConfiguration" Version="0.3.0" />
+    <PackageReference Include="HoneyDrunk.Vault.Providers.AzureKeyVault" Version="0.3.0" />
+    <PackageReference Include="Microsoft.Azure.Functions.Worker" Version="2.52.0" />
+    <PackageReference Include="Microsoft.Azure.Functions.Worker.Sdk" Version="2.0.7" />
+    <PackageReference Include="Microsoft.Azure.Functions.Worker.Extensions.Http" Version="3.3.0" />
+    <PackageReference Include="Microsoft.Azure.Functions.Worker.Extensions.Storage.Queues" Version="5.5.4" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="10.0.7" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.7" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Update="Microsoft.CodeAnalysis.NetAnalyzers" Version="10.0.202" />
+  </ItemGroup>
+
+</Project>

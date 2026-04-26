@@ -1,0 +1,44 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <LangVersion>latest</LangVersion>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+
+    <!-- Package Metadata -->
+    <PackageId>HoneyDrunk.Notify.Abstractions</PackageId>
+    <Version>0.1.0</Version>
+    <Authors>HoneyDrunk Studios</Authors>
+    <Description>Pure contracts and abstractions for HoneyDrunk.Notify – the Grid notification subsystem. Provides channel-agnostic notification interfaces, message templates, and delivery primitives. Safe for libraries and downstream Nodes.</Description>
+    <PackageTags>notify;abstractions;notifications;channels;templates;grid</PackageTags>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <RepositoryUrl>https://github.com/HoneyDrunkStudios/HoneyDrunk.Notify</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageProjectUrl>https://github.com/HoneyDrunkStudios/HoneyDrunk.Notify</PackageProjectUrl>
+
+    <!-- Symbol Package Configuration -->
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="HoneyDrunk.Kernel.Abstractions" Version="0.4.0" />
+    <PackageReference Include="HoneyDrunk.Standards" Version="0.2.7">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="\" />
+    <None Include="CHANGELOG.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Update="Microsoft.CodeAnalysis.NetAnalyzers" Version="10.0.202" />
+  </ItemGroup>
+
+</Project>

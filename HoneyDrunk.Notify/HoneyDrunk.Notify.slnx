@@ -1,0 +1,27 @@
+<Solution>
+  <Folder Name="/Docs/">
+    <File Path="../README.md" />
+  </Folder>
+  <Folder Name="/Pipelines/">
+    <File Path="../.github/workflows/deploy.yml" />
+    <File Path="../.github/workflows/hive-field-mirror.yml" />
+    <File Path="../.github/workflows/nightly-security.yml" />
+    <File Path="../.github/workflows/pr.yml" />
+    <File Path="../.github/workflows/publish.yml" />
+    <File Path="../.github/workflows/weekly-deps.yml" />
+  </Folder>
+  <Project Path="HoneyDrunk.Notify.Abstractions/HoneyDrunk.Notify.Abstractions.csproj" />
+  <Project Path="HoneyDrunk.Notify.Functions/HoneyDrunk.Notify.Functions.csproj" />
+  <Project Path="HoneyDrunk.Notify.Hosting.AspNetCore/HoneyDrunk.Notify.Hosting.AspNetCore.csproj" />
+  <Project Path="HoneyDrunk.Notify.IntegrationTests/HoneyDrunk.Notify.IntegrationTests.csproj" />
+  <Project Path="HoneyDrunk.Notify.Providers.Email.Resend/HoneyDrunk.Notify.Providers.Email.Resend.csproj" />
+  <Project Path="HoneyDrunk.Notify.Providers.Email.Smtp/HoneyDrunk.Notify.Providers.Email.Smtp.csproj" />
+  <Project Path="HoneyDrunk.Notify.Providers.Sms.Twilio/HoneyDrunk.Notify.Providers.Sms.Twilio.csproj" />
+  <Project Path="HoneyDrunk.Notify.Queue.Abstractions/HoneyDrunk.Notify.Queue.Abstractions.csproj" />
+  <Project Path="HoneyDrunk.Notify.Queue.AzureStorage/HoneyDrunk.Notify.Queue.AzureStorage.csproj" />
+  <Project Path="HoneyDrunk.Notify.Queue.InMemory/HoneyDrunk.Notify.Queue.InMemory.csproj" />
+  <Project Path="HoneyDrunk.Notify.Tests/HoneyDrunk.Notify.Tests.csproj" />
+  <Project Path="HoneyDrunk.Notify.Tools/HoneyDrunk.Notify.Tools.csproj" />
+  <Project Path="HoneyDrunk.Notify.Worker/HoneyDrunk.Notify.Worker.csproj" />
+  <Project Path="HoneyDrunk.Notify/HoneyDrunk.Notify.csproj" />
+</Solution>

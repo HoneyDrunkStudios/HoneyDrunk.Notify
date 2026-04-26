@@ -1,0 +1,12 @@
+Hello {{Name}},
+
+Welcome to {{ServiceName}}! Your account has been created successfully.
+
+Your registration details:
+- Email: {{Email}}
+- Plan: {{Plan}}
+
+If you have any questions, please contact us at {{SupportEmail}}.
+
+Best regards,
+The {{ServiceName}} Team
