@@ -6,7 +6,7 @@ namespace HoneyDrunk.Notify.Abstractions;
 /// <remarks>
 /// <para>
 /// <see cref="INotificationGateway"/> is the primary interface that application code uses to
-/// request a notification. Implementations validate the request, evaluate policies, assign a
+/// request a notification. Implementations validate the request, assign a
 /// <see cref="NotificationId"/>, and enqueue a <see cref="NotificationEnvelope"/> for
 /// asynchronous delivery by the worker.
 /// </para>
@@ -19,7 +19,7 @@ namespace HoneyDrunk.Notify.Abstractions;
 public interface INotificationGateway
 {
     /// <summary>
-    /// Validates, applies policy, and enqueues a notification for asynchronous delivery.
+    /// Validates and enqueues a notification for asynchronous delivery.
     /// </summary>
     /// <param name="request">The notification request.</param>
     /// <param name="cancellationToken">A token to cancel the operation.</param>

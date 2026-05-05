@@ -5,6 +5,7 @@ using HoneyDrunk.Notify.Queue.Abstractions;
 using HoneyDrunk.Notify.Queue.InMemory.DependencyInjection;
 using HoneyDrunk.Notify.Routing;
 using Microsoft.Extensions.DependencyInjection;
+using System.Collections.Concurrent;
 using System.Diagnostics;
 
 namespace HoneyDrunk.Notify.IntegrationTests;
@@ -16,7 +17,7 @@ namespace HoneyDrunk.Notify.IntegrationTests;
 public sealed class CorrelationCanaryTests : IDisposable
 {
     private readonly ActivityListener _listener;
-    private readonly List<Activity> _capturedActivities = [];
+    private readonly ConcurrentQueue<Activity> _capturedActivities = [];
 
     /// <summary>
     /// Initializes a new instance of the <see cref="CorrelationCanaryTests"/> class.
@@ -27,7 +28,7 @@ public sealed class CorrelationCanaryTests : IDisposable
         {
             ShouldListenTo = source => source.Name == "HoneyDrunk.Notify",
             Sample = (ref ActivityCreationOptions<ActivityContext> _) => ActivitySamplingResult.AllDataAndRecorded,
-            ActivityStopped = activity => _capturedActivities.Add(activity),
+            ActivityStopped = activity => _capturedActivities.Enqueue(activity),
         };
 
         ActivitySource.AddActivityListener(_listener);
