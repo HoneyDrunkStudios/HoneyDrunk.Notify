@@ -9,7 +9,7 @@
 
     <!-- Package Metadata -->
     <PackageId>HoneyDrunk.Notify.Providers.Email.Resend</PackageId>
-    <Version>0.1.0</Version>
+    <Version>0.2.0</Version>
     <Authors>HoneyDrunk Studios</Authors>
     <Description>Resend HTTP API email provider for HoneyDrunk.Notify. Delivers email notifications via the Resend transactional email service.</Description>
     <PackageTags>notify;provider;email;resend;notifications;grid</PackageTags>

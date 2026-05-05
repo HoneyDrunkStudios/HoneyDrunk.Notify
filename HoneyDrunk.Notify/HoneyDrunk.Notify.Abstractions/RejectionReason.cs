@@ -16,9 +16,9 @@ public enum RejectionReason
     ValidationFailed = 1,
 
     /// <summary>
-    /// A notification policy denied the request (rate-limit, opt-out, suppression rule, etc.).
+    /// Notify intake is disabled by runtime configuration.
     /// </summary>
-    PolicyDenied = 2,
+    RuntimeDisabled = 2,
 
     /// <summary>
     /// A notification with the same idempotency key was already processed.

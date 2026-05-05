@@ -7,7 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-05-05
+
 ### Changed
+
+- Aligned package version to `0.2.0` for the ADR-0019 Notify intake boundary refactor.
 
 - SMTP credentials now resolve from `ISecretStore` on each send using `Smtp--Username` and `Smtp--Password`.
 - Bootstrap-time username and password option usage is obsolete and no longer used for delivery.

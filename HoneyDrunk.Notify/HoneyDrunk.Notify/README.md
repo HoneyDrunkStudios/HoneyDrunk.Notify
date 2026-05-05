@@ -2,7 +2,9 @@
 
 Runtime implementations for the HoneyDrunk.Notify notification subsystem.
 
-This package provides notification dispatching, channel routing, template rendering, and provider orchestration. It depends on `HoneyDrunk.Notify.Abstractions` for contracts and is intended to be composed by a host package or deployable Notify host.
+This package provides notification dispatching, channel routing, template rendering, and provider delivery mechanics. It depends on `HoneyDrunk.Notify.Abstractions` for contracts and is intended to be composed by a host package or deployable Notify host.
+
+Notify intake validates request structure, applies idempotency, renders channel payloads, and enqueues envelopes for delivery. Preference, cadence, suppression, and other outbound decision policy concerns belong to `HoneyDrunk.Communications`, which calls Notify only after deciding that a message should be sent.
 
 ## Configuration
 

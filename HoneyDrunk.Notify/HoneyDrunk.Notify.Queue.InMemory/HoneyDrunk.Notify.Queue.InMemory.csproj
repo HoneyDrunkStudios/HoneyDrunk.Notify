@@ -9,7 +9,7 @@
 
     <!-- Package Metadata -->
     <PackageId>HoneyDrunk.Notify.Queue.InMemory</PackageId>
-    <Version>0.1.0</Version>
+    <Version>0.2.0</Version>
     <Authors>HoneyDrunk Studios</Authors>
     <Description>In-memory notification queue adapter for HoneyDrunk.Notify. Suitable for development, testing, and single-instance scenarios.</Description>
     <PackageTags>notify;queue;inmemory;notifications;grid</PackageTags>

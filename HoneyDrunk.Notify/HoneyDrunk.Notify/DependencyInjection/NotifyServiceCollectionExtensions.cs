@@ -1,7 +1,6 @@
 using HoneyDrunk.Notify.Abstractions;
+using HoneyDrunk.Notify.Intake;
 using HoneyDrunk.Notify.Options;
-using HoneyDrunk.Notify.Orchestration;
-using HoneyDrunk.Notify.Policies;
 using HoneyDrunk.Notify.Routing;
 using HoneyDrunk.Notify.Storage;
 using HoneyDrunk.Notify.Templates;
@@ -18,7 +17,7 @@ public static class NotifyServiceCollectionExtensions
 {
     /// <summary>
     /// Registers the core notification runtime services: gateway, idempotency store,
-    /// in-memory enqueuer, dispatcher, default policy, backoff strategy, and template renderer.
+    /// in-memory enqueuer, dispatcher, backoff strategy, and template renderer.
     /// </summary>
     /// <param name="services">The service collection.</param>
     /// <param name="configure">Optional configurator for <see cref="NotifyRuntimeOptions"/>.</param>
@@ -47,7 +46,6 @@ public static class NotifyServiceCollectionExtensions
         services.TryAddSingleton<INotificationSenderResolver, NotificationSenderResolver>();
         services.TryAddSingleton<NotificationDispatcher>();
 
-        services.TryAddSingleton<INotificationPolicy, AllowAllPolicy>();
         services.TryAddSingleton<ITemplateRenderer, FileTemplateRenderer>();
         services.TryAddSingleton<IEmailTemplateRenderer, EmailFileTemplateRenderer>();
 
