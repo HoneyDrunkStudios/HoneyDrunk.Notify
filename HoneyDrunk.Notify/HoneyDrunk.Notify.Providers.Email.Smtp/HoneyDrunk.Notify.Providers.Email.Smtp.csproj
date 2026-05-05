@@ -9,7 +9,7 @@
 
     <!-- Package Metadata -->
     <PackageId>HoneyDrunk.Notify.Providers.Email.Smtp</PackageId>
-    <Version>0.1.0</Version>
+    <Version>0.2.0</Version>
     <Authors>HoneyDrunk Studios</Authors>
     <Description>SMTP email provider for HoneyDrunk.Notify. Delivers email notifications via standard SMTP protocol.</Description>
     <PackageTags>notify;provider;email;smtp;notifications;grid</PackageTags>

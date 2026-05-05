@@ -7,18 +7,16 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System.Diagnostics;
 
-namespace HoneyDrunk.Notify.Orchestration;
+namespace HoneyDrunk.Notify.Intake;
 
 /// <summary>
-/// Core notification gateway that validates requests, evaluates policies,
-/// applies deduplication, renders channel-specific payloads, builds envelopes,
-/// and enqueues them for delivery.
+/// Core notification gateway that validates requests, applies deduplication,
+/// renders channel-specific payloads, builds envelopes, and enqueues them for delivery.
 /// </summary>
 #pragma warning disable CA1812
 internal sealed class NotificationGateway(
     IOptions<NotifyRuntimeOptions> options,
     INotificationEnqueuer enqueuer,
-    INotificationPolicy policy,
     IIdempotencyStore idempotencyStore,
     IEmailTemplateRenderer emailTemplateRenderer,
     ILogger<NotificationGateway> logger) : INotificationGateway
@@ -42,14 +40,14 @@ internal sealed class NotificationGateway(
 
         if (!runtimeOptions.Enabled)
         {
-            SetRejected(activity, "PolicyDenied");
+            SetRejected(activity, "RuntimeDisabled");
             logger.LogWarning(
                 "{Event}: Notification pipeline disabled. NotificationId={NotificationId}, Channel={Channel}, TemplateKey={TemplateKey}.",
                 NotifyEventNames.EnqueueRejected,
                 notificationId,
                 request.Channel,
                 request.TemplateKey.Value);
-            return NotificationOutcome.Rejected(notificationId, now, RejectionReason.PolicyDenied, "Notification subsystem is disabled.");
+            return NotificationOutcome.Rejected(notificationId, now, RejectionReason.RuntimeDisabled, "Notification subsystem is disabled.");
         }
 
         var validationError = ValidateRequest(request);
@@ -66,21 +64,7 @@ internal sealed class NotificationGateway(
             return NotificationOutcome.Rejected(notificationId, now, RejectionReason.ValidationFailed, validationError);
         }
 
-        var policyResult = await policy.EvaluateAsync(request, cancellationToken);
-        if (!policyResult.IsAllowed)
-        {
-            SetRejected(activity, policyResult.RejectionReason.ToString());
-            logger.LogInformation(
-                "{Event}: NotificationId={NotificationId}, Channel={Channel}, TemplateKey={TemplateKey}, Reason={Reason}.",
-                NotifyEventNames.EnqueueRejected,
-                notificationId,
-                request.Channel,
-                request.TemplateKey.Value,
-                policyResult.Detail);
-            return NotificationOutcome.Rejected(notificationId, now, policyResult.RejectionReason, policyResult.Detail);
-        }
-
-        var effectiveRequest = policyResult.TransformedRequest ?? request;
+        var effectiveRequest = request;
 
         if (runtimeOptions.EnableDedupe && effectiveRequest.IdempotencyKey.HasValue)
         {

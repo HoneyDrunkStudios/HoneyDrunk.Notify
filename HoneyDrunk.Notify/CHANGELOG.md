@@ -11,7 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-05-05
+
 ### Changed
+
+- Aligned package version to `0.2.0` for the ADR-0019 Notify intake boundary refactor.
+- Moved Notify request intake naming from `Orchestration` to `Intake`.
+- Removed Notify-owned preference/cadence/suppression policy concepts now owned by `HoneyDrunk.Communications`.
 
 - Migrated Notify worker and Functions hosts to ADR-0005 env-driven Vault/App Configuration bootstrap.
 - Resolved Resend, Twilio, and SMTP provider credentials from Vault at send time using provider-grouped secret names.

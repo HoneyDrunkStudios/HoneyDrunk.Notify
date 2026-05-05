@@ -9,7 +9,7 @@
 
     <!-- Package Metadata -->
     <PackageId>HoneyDrunk.Notify.Providers.Sms.Twilio</PackageId>
-    <Version>0.1.0</Version>
+    <Version>0.2.0</Version>
     <Authors>HoneyDrunk Studios</Authors>
     <Description>Twilio SMS provider for HoneyDrunk.Notify. Delivers SMS notifications via the Twilio REST API.</Description>
     <PackageTags>notify;provider;sms;twilio;notifications;grid</PackageTags>

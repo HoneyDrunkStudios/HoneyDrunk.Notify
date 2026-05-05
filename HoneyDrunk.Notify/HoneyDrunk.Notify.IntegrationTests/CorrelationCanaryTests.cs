@@ -99,7 +99,9 @@ public sealed class CorrelationCanaryTests : IDisposable
         outcome.Provider.Should().Be("fake");
         outcome.Status.Should().Be(DeliveryStatus.Succeeded);
 
-        _capturedActivities.Should().Contain(
+        var capturedActivities = _capturedActivities.ToArray();
+
+        capturedActivities.Should().Contain(
             a =>
                 a.DisplayName == NotifyEventNames.DispatchAttempt ||
                 a.OperationName == NotifyEventNames.DispatchAttempt,

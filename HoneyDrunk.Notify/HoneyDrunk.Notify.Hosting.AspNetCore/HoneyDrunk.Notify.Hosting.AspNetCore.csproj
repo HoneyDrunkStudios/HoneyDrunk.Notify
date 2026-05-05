@@ -9,7 +9,7 @@
 
     <!-- Package Metadata -->
     <PackageId>HoneyDrunk.Notify.Hosting.AspNetCore</PackageId>
-    <Version>0.1.0</Version>
+    <Version>0.2.0</Version>
     <Authors>HoneyDrunk Studios</Authors>
     <Description>ASP.NET Core hosting integration for HoneyDrunk.Notify. Provides service registration, middleware, and health check wiring for the notification subsystem.</Description>
     <PackageTags>notify;hosting;aspnetcore;middleware;di;notifications;grid</PackageTags>

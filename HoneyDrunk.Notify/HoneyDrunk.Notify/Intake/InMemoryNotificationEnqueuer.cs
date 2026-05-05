@@ -1,7 +1,7 @@
 using HoneyDrunk.Notify.Abstractions;
 using System.Collections.Concurrent;
 
-namespace HoneyDrunk.Notify.Orchestration;
+namespace HoneyDrunk.Notify.Intake;
 
 /// <summary>
 /// Thread-safe in-memory envelope queue for development and testing.

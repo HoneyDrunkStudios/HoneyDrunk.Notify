@@ -1,6 +1,6 @@
 using HoneyDrunk.Notify.Abstractions;
 
-namespace HoneyDrunk.Notify.Orchestration;
+namespace HoneyDrunk.Notify.Intake;
 
 /// <summary>
 /// Accepts materialized notification envelopes for asynchronous delivery.

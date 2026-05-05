@@ -7,8 +7,8 @@ namespace HoneyDrunk.Notify.Abstractions;
 /// <para>
 /// NotificationRequest is the public-facing input to <see cref="INotificationGateway"/>.
 /// It captures what the caller wants to send, to whom, and through which channel, but
-/// contains no delivery mechanics. The gateway validates, applies policy, assigns a
-/// <see cref="NotificationId"/>, and converts the request into a <see cref="NotificationEnvelope"/>
+/// contains no delivery mechanics. The gateway validates, assigns a <see cref="NotificationId"/>,
+/// and converts the request into a <see cref="NotificationEnvelope"/>
 /// for the worker pipeline.
 /// </para>
 /// <para>

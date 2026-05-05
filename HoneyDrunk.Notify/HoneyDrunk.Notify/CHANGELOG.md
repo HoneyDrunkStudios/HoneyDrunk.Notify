@@ -7,7 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-05-05
+
 ### Changed
+
+- Aligned package version to `0.2.0` for the ADR-0019 Notify intake boundary refactor.
+- Renamed the runtime request gateway area from `Orchestration` to `Intake`.
+- Removed Notify-owned policy-pipeline evaluation from `NotificationGateway.EnqueueAsync`; Communications now owns outbound decision policy before calling Notify.
+- Replaced policy-denied runtime-disabled outcomes with `RejectionReason.RuntimeDisabled`.
 
 - Non-secret notification defaults now flow from host configuration, including App Configuration label `honeydrunk-notify`.
 
