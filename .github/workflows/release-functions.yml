@@ -1,0 +1,110 @@
+name: Release Notify.Functions
+
+# Tag-triggered release for Notify.Functions.
+# Push a tag like `functions-v0.1.0` to build, publish, and deploy to
+# func-hd-notify-<env> via the reusable job-deploy-function.yml (ADR-0012:
+# deploy logic lives in HoneyDrunk.Actions, never reimplemented here).
+#
+# Environment scope: dev only, by design. Per the ADR-0015 rollout, this
+# release line deploys to `dev` (env-scoped GitHub vars resolved in the
+# `resolve` job, `environment: dev`). Staging / prod promotion gates are a
+# deliberate follow-up, not part of this workflow. A `functions-v*` tag
+# therefore deploys to dev and nothing else — intentional, not a gap.
+
+on:
+  push:
+    tags:
+      - 'functions-v*'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  build:
+    name: Build Function App
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Restore
+        run: dotnet restore HoneyDrunk.Notify/HoneyDrunk.Notify.slnx
+
+      - name: Build
+        run: dotnet build HoneyDrunk.Notify/HoneyDrunk.Notify.slnx -c Release --no-restore
+
+      - name: Test
+        run: dotnet test HoneyDrunk.Notify/HoneyDrunk.Notify.slnx -c Release --no-build --no-restore
+
+      - name: Publish
+        run: |
+          dotnet publish HoneyDrunk.Notify/HoneyDrunk.Notify.Functions/HoneyDrunk.Notify.Functions.csproj \
+            -c Release \
+            -o ./publish \
+            --no-build
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: notify-functions
+          path: ./publish
+
+  resolve:
+    name: Resolve dev config
+    # No `needs: build` — resolve consumes no build output or artifact (only the
+    # `deploy` job needs the artifact). Running resolve in parallel with build
+    # avoids serializing var resolution behind restore/build/test/publish.
+    runs-on: ubuntu-latest
+    environment: dev
+    outputs:
+      functions-app: func-hd-notify-${{ vars.HD_ENV }}
+      resource-group: rg-hd-notify-${{ vars.HD_ENV }}
+      keyvault-name: kv-hd-notify-${{ vars.HD_ENV }}
+      azure-client-id: ${{ vars.AZURE_CLIENT_ID }}
+      azure-tenant-id: ${{ vars.AZURE_TENANT_ID }}
+      azure-subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+    steps:
+      - name: Echo resolved targets
+        run: |
+          echo "Function App : func-hd-notify-${{ vars.HD_ENV }}"
+          echo "Resource Grp : rg-hd-notify-${{ vars.HD_ENV }}"
+          echo "Key Vault    : kv-hd-notify-${{ vars.HD_ENV }}"
+
+  deploy:
+    name: Deploy to dev
+    needs: [build, resolve]
+    # A reusable-workflow caller job cannot declare `environment:` itself, so
+    # the environment is passed through as an input. The reusable workflow's
+    # deploy job runs under `environment: dev`, making the OIDC token subject
+    # repo:HoneyDrunkStudios/HoneyDrunk.Notify:environment:dev — which matches
+    # the environment-scoped federated credential on sp-hd-notify-dev.
+    # `resolve` (also environment: dev) separately supplies env-scoped vars.
+    uses: HoneyDrunkStudios/HoneyDrunk.Actions/.github/workflows/job-deploy-function.yml@main
+    with:
+      environment: dev
+      artifact-name: notify-functions
+      package-path: ./publish
+      functions-app: ${{ needs.resolve.outputs.functions-app }}
+      resource-group: ${{ needs.resolve.outputs.resource-group }}
+      azure-client-id: ${{ needs.resolve.outputs.azure-client-id }}
+      azure-tenant-id: ${{ needs.resolve.outputs.azure-tenant-id }}
+      azure-subscription-id: ${{ needs.resolve.outputs.azure-subscription-id }}
+      keyvault-name: ${{ needs.resolve.outputs.keyvault-name }}
+      keyvault-secrets: |
+        Resend--ApiKey
+        Twilio--AccountSid
+        Twilio--AuthToken
+        Smtp--Username
+        Smtp--Password
+        NotifyQueueConnection
+      # health-check-url intentionally omitted: Notify.Functions exposes a
+      # queue trigger + a vault-invalidation HTTP function but NO /api/health
+      # endpoint. Adding one is a separate app-code change (tracked follow-up);
+      # the reusable workflow skips the probe when this is empty.
