@@ -104,7 +104,8 @@ jobs:
         Smtp--Username
         Smtp--Password
         NotifyQueueConnection
-      # health-check-url intentionally omitted: Notify.Functions exposes a
-      # queue trigger + a vault-invalidation HTTP function but NO /api/health
-      # endpoint. Adding one is a separate app-code change (tracked follow-up);
-      # the reusable workflow skips the probe when this is empty.
+      # HealthFunction exposes GET /api/health (aggregates the registered
+      # INotifyHealthContributor set; 503 only when the subsystem is Unhealthy).
+      # The reusable workflow probes this after deploy and gates the traffic
+      # shift on a healthy response.
+      health-check-url: /api/health
