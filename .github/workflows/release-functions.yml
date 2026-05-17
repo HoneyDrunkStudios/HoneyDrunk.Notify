@@ -4,6 +4,12 @@ name: Release Notify.Functions
 # Push a tag like `functions-v0.1.0` to build, publish, and deploy to
 # func-hd-notify-<env> via the reusable job-deploy-function.yml (ADR-0012:
 # deploy logic lives in HoneyDrunk.Actions, never reimplemented here).
+#
+# Environment scope: dev only, by design. Per the ADR-0015 rollout, this
+# release line deploys to `dev` (env-scoped GitHub vars resolved in the
+# `resolve` job, `environment: dev`). Staging / prod promotion gates are a
+# deliberate follow-up, not part of this workflow. A `functions-v*` tag
+# therefore deploys to dev and nothing else — intentional, not a gap.
 
 on:
   push:
@@ -52,7 +58,9 @@ jobs:
 
   resolve:
     name: Resolve dev config
-    needs: build
+    # No `needs: build` — resolve consumes no build output or artifact (only the
+    # `deploy` job needs the artifact). Running resolve in parallel with build
+    # avoids serializing var resolution behind restore/build/test/publish.
     runs-on: ubuntu-latest
     environment: dev
     outputs:
@@ -72,8 +80,15 @@ jobs:
   deploy:
     name: Deploy to dev
     needs: [build, resolve]
+    # A reusable-workflow caller job cannot declare `environment:` itself, so
+    # the environment is passed through as an input. The reusable workflow's
+    # deploy job runs under `environment: dev`, making the OIDC token subject
+    # repo:HoneyDrunkStudios/HoneyDrunk.Notify:environment:dev — which matches
+    # the environment-scoped federated credential on sp-hd-notify-dev.
+    # `resolve` (also environment: dev) separately supplies env-scoped vars.
     uses: HoneyDrunkStudios/HoneyDrunk.Actions/.github/workflows/job-deploy-function.yml@main
     with:
+      environment: dev
       artifact-name: notify-functions
       package-path: ./publish
       functions-app: ${{ needs.resolve.outputs.functions-app }}

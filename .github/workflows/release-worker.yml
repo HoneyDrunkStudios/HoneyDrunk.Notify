@@ -6,6 +6,12 @@ name: Release Notify.Worker
 # the reusable job-deploy-container-app.yml (ADR-0015 hosting, ADR-0012:
 # deploy logic lives in HoneyDrunk.Actions). The reusable workflow checks
 # out this repo and builds the image itself when build-context is set.
+#
+# Environment scope: dev only, by design. Per the ADR-0015 rollout, this
+# release line deploys to `dev` (env-scoped GitHub vars resolved in the
+# `resolve` job, `environment: dev`). Staging / prod promotion gates are a
+# deliberate follow-up, not part of this workflow. A `worker-v*` tag
+# therefore deploys to dev and nothing else — intentional, not a gap.
 
 on:
   push:
@@ -41,8 +47,15 @@ jobs:
   deploy:
     name: Deploy to dev
     needs: resolve
+    # A reusable-workflow caller job cannot declare `environment:` itself, so
+    # the environment is passed through as an input. The reusable workflow's
+    # deploy job runs under `environment: dev`, making the OIDC token subject
+    # repo:HoneyDrunkStudios/HoneyDrunk.Notify:environment:dev — which matches
+    # the environment-scoped federated credential on sp-hd-notify-dev.
+    # `resolve` (also environment: dev) separately supplies env-scoped vars.
     uses: HoneyDrunkStudios/HoneyDrunk.Actions/.github/workflows/job-deploy-container-app.yml@main
     with:
+      environment: dev
       # Dockerfile declares "Build context: HoneyDrunk.Notify/ (solution root)".
       build-context: HoneyDrunk.Notify
       dockerfile: HoneyDrunk.Notify.Worker/Dockerfile
