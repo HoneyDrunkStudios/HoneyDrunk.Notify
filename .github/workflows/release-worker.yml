@@ -1,0 +1,69 @@
+name: Release Notify.Worker
+
+# Tag-triggered release for Notify.Worker.
+# Push a tag like `worker-v0.1.0` to build the container image, push it to
+# the shared ACR, and roll a new revision on ca-hd-notify-worker-<env> via
+# the reusable job-deploy-container-app.yml (ADR-0015 hosting, ADR-0012:
+# deploy logic lives in HoneyDrunk.Actions). The reusable workflow checks
+# out this repo and builds the image itself when build-context is set.
+
+on:
+  push:
+    tags:
+      - 'worker-v*'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  resolve:
+    name: Resolve dev config
+    runs-on: ubuntu-latest
+    environment: dev
+    outputs:
+      acr-registry: acrhdshared${{ vars.HD_ENV }}.azurecr.io
+      container-app: ca-hd-notify-worker-${{ vars.HD_ENV }}
+      resource-group: rg-hd-notify-${{ vars.HD_ENV }}
+      keyvault-name: kv-hd-notify-${{ vars.HD_ENV }}
+      azure-client-id: ${{ vars.AZURE_CLIENT_ID }}
+      azure-tenant-id: ${{ vars.AZURE_TENANT_ID }}
+      azure-subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+    steps:
+      - name: Echo resolved targets
+        run: |
+          echo "Container App : ca-hd-notify-worker-${{ vars.HD_ENV }}"
+          echo "Resource Grp  : rg-hd-notify-${{ vars.HD_ENV }}"
+          echo "ACR           : acrhdshared${{ vars.HD_ENV }}.azurecr.io"
+          echo "Key Vault     : kv-hd-notify-${{ vars.HD_ENV }}"
+
+  deploy:
+    name: Deploy to dev
+    needs: resolve
+    uses: HoneyDrunkStudios/HoneyDrunk.Actions/.github/workflows/job-deploy-container-app.yml@main
+    with:
+      # Dockerfile declares "Build context: HoneyDrunk.Notify/ (solution root)".
+      build-context: HoneyDrunk.Notify
+      dockerfile: HoneyDrunk.Notify.Worker/Dockerfile
+      image-name: honeydrunk-notify-worker
+      image-tag: ${{ github.ref_name }}
+      acr-registry: ${{ needs.resolve.outputs.acr-registry }}
+      container-app: ${{ needs.resolve.outputs.container-app }}
+      resource-group: ${{ needs.resolve.outputs.resource-group }}
+      azure-client-id: ${{ needs.resolve.outputs.azure-client-id }}
+      azure-tenant-id: ${{ needs.resolve.outputs.azure-tenant-id }}
+      azure-subscription-id: ${{ needs.resolve.outputs.azure-subscription-id }}
+      keyvault-name: ${{ needs.resolve.outputs.keyvault-name }}
+      keyvault-secrets: |
+        Resend--ApiKey
+        Twilio--AccountSid
+        Twilio--AuthToken
+        Smtp--Username
+        Smtp--Password
+        NotifyQueueConnection
+      traffic-shift-mode: full
+      # health-check-url intentionally omitted: Notify.Worker is a WebApplication
+      # that only exposes /internal/vault/invalidate (Event Grid webhook) — there
+      # is no /health endpoint. Adding one is a separate app-code change (tracked
+      # follow-up). Traffic shifts on successful revision provisioning.
