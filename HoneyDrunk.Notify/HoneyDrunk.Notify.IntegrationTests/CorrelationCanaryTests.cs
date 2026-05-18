@@ -113,13 +113,11 @@ public sealed class CorrelationCanaryTests : IDisposable
     private sealed class FakeNotificationSender : INotificationSender
 #pragma warning restore CA1812
     {
-        private readonly List<NotificationEnvelope> _received = [];
-
-        internal List<NotificationEnvelope> ReceivedEnvelopes => _received;
+        internal List<NotificationEnvelope> ReceivedEnvelopes { get; } = [];
 
         public Task<DeliveryOutcome> SendAsync(NotificationEnvelope envelope, CancellationToken cancellationToken = default)
         {
-            _received.Add(envelope);
+            ReceivedEnvelopes.Add(envelope);
 
             return Task.FromResult(DeliveryOutcome.Succeeded(
                 envelope.NotificationId,
