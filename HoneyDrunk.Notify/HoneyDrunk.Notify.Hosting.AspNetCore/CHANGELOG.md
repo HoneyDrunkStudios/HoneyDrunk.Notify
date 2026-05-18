@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-05-17
+
+### Added
+
+- `NotifyHealthEvaluator`: aggregates all registered `INotifyHealthContributor`
+  instances into one `NotifyHealthReport`, taking the most severe status.
+  Shared by Notify.Worker and Notify.Functions for identical readiness logic.
+- `NotifyHealthEndpointsExtensions.MapNotifyHealthEndpoints()`: maps `/health`
+  and `/health/live` (liveness) and `/health/ready` (aggregated readiness, 503
+  when Unhealthy) for ASP.NET Core hosts.
+
 ## [0.2.0] - 2026-05-05
 
 ### Changed

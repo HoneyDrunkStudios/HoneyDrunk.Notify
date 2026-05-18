@@ -12,7 +12,7 @@ namespace HoneyDrunk.Notify.Queue.AzureStorage;
 /// Serializes envelopes as JSON, encodes receipts as "messageId|popReceipt".
 /// </summary>
 #pragma warning disable CA1812
-internal sealed class AzureStorageNotificationQueue : INotificationQueue, IDeadLetterInspector, IAsyncDisposable
+internal sealed partial class AzureStorageNotificationQueue : INotificationQueue, IDeadLetterInspector, IAsyncDisposable
 #pragma warning restore CA1812
 {
     private static readonly JsonSerializerOptions SerializerOptions = new()
@@ -55,10 +55,7 @@ internal sealed class AzureStorageNotificationQueue : INotificationQueue, IDeadL
         var json = JsonSerializer.Serialize(envelope, SerializerOptions);
         await _client.SendMessageAsync(json, ct);
 
-        _logger.LogDebug(
-            "Enqueued notification {NotificationId} to Azure Storage Queue '{Queue}'.",
-            envelope.NotificationId,
-            _options.QueueName);
+        LogEnqueued(_logger, envelope.NotificationId, _options.QueueName);
     }
 
     /// <inheritdoc />
@@ -83,7 +80,7 @@ internal sealed class AzureStorageNotificationQueue : INotificationQueue, IDeadL
 
                 if (envelope is null)
                 {
-                    _logger.LogWarning("Failed to deserialize message {MessageId}. Skipping.", msg.MessageId);
+                    LogDeserializeNull(_logger, msg.MessageId);
                     continue;
                 }
 
@@ -94,7 +91,7 @@ internal sealed class AzureStorageNotificationQueue : INotificationQueue, IDeadL
             catch (JsonException ex)
 #pragma warning restore CA1031
             {
-                _logger.LogError(ex, "Deserialization failed for message {MessageId}. Deleting poison message.", msg.MessageId);
+                LogPoisonMessage(_logger, ex, msg.MessageId);
                 await _client.DeleteMessageAsync(msg.MessageId, msg.PopReceipt, ct);
             }
         }
@@ -138,11 +135,7 @@ internal sealed class AzureStorageNotificationQueue : INotificationQueue, IDeadL
         var (messageId, popReceipt) = DecodeReceipt(item.Receipt);
         await _client.DeleteMessageAsync(messageId, popReceipt, ct);
 
-        _logger.LogWarning(
-            "Dead-lettered notification {NotificationId} after {DeliveryCount} attempts. Reason: {Reason}.",
-            item.Envelope.NotificationId,
-            item.DeliveryCount,
-            reason);
+        LogDeadLettered(_logger, item.Envelope.NotificationId, item.DeliveryCount, reason);
     }
 
     // --- IDeadLetterInspector ---
@@ -237,6 +230,50 @@ internal sealed class AzureStorageNotificationQueue : INotificationQueue, IDeadL
         return (receipt[..separatorIndex], receipt[(separatorIndex + 1)..]);
     }
 
+    private static DeadLetterWrapper? TryDeserializeWrapper(string messageText)
+    {
+        try
+        {
+            return JsonSerializer.Deserialize<DeadLetterWrapper>(messageText, SerializerOptions);
+        }
+#pragma warning disable CA1031
+        catch (JsonException)
+#pragma warning restore CA1031
+        {
+            return null;
+        }
+    }
+
+    [LoggerMessage(
+        Level = LogLevel.Debug,
+        Message = "Enqueued notification {NotificationId} to Azure Storage Queue '{Queue}'.")]
+    private static partial void LogEnqueued(
+        ILogger logger,
+        NotificationId notificationId,
+        string queue);
+
+    [LoggerMessage(
+        Level = LogLevel.Warning,
+        Message = "Failed to deserialize message {MessageId}. Skipping.")]
+    private static partial void LogDeserializeNull(ILogger logger, string messageId);
+
+    [LoggerMessage(
+        Level = LogLevel.Error,
+        Message = "Deserialization failed for message {MessageId}. Deleting poison message.")]
+    private static partial void LogPoisonMessage(
+        ILogger logger,
+        Exception exception,
+        string messageId);
+
+    [LoggerMessage(
+        Level = LogLevel.Warning,
+        Message = "Dead-lettered notification {NotificationId} after {DeliveryCount} attempts. Reason: {Reason}.")]
+    private static partial void LogDeadLettered(
+        ILogger logger,
+        NotificationId notificationId,
+        int deliveryCount,
+        string reason);
+
     /// <summary>
     /// Receives DLQ messages in batches, finds the target notification, and optionally replays it.
     /// Non-matching messages are re-enqueued into the DLQ in their original form.
@@ -281,20 +318,6 @@ internal sealed class AzureStorageNotificationQueue : INotificationQueue, IDeadL
         }
 
         return found;
-    }
-
-    private DeadLetterWrapper? TryDeserializeWrapper(string messageText)
-    {
-        try
-        {
-            return JsonSerializer.Deserialize<DeadLetterWrapper>(messageText, SerializerOptions);
-        }
-#pragma warning disable CA1031
-        catch (JsonException)
-#pragma warning restore CA1031
-        {
-            return null;
-        }
     }
 
     private async Task EnsureQueueExistsAsync(CancellationToken ct)

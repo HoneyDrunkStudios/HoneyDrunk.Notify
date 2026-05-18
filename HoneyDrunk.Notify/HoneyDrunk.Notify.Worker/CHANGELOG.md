@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-05-17
+
+### Added
+
+- Health endpoints: `/health` and `/health/live` (liveness, dependency-free)
+  and `/health/ready` (aggregates the registered `INotifyHealthContributor`
+  set via the shared `NotifyHealthEvaluator`, 503 when Unhealthy). The deploy
+  traffic gate in `release-worker.yml` probes `/health`.
+
 ## [0.2.0] - 2026-05-05
 
 ### Changed

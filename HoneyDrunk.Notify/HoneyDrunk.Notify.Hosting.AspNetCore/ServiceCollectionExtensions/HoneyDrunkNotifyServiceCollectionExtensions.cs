@@ -59,6 +59,8 @@ public static class HoneyDrunkNotifyServiceCollectionExtensions
         services.TryAddEnumerable(
             ServiceDescriptor.Singleton<INotifyHealthContributor, DefaultNotifyHealthContributor>());
 
+        services.TryAddSingleton<NotifyHealthEvaluator>();
+
         return services;
     }
 }

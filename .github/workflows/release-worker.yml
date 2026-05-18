@@ -76,7 +76,8 @@ jobs:
         Smtp--Password
         NotifyQueueConnection
       traffic-shift-mode: full
-      # health-check-url intentionally omitted: Notify.Worker is a WebApplication
-      # that only exposes /internal/vault/invalidate (Event Grid webhook) — there
-      # is no /health endpoint. Adding one is a separate app-code change (tracked
-      # follow-up). Traffic shifts on successful revision provisioning.
+      # Probe /health (liveness): a 200 confirms the revision started, DI built,
+      # and Vault bootstrap succeeded. Dependency-free on purpose so a transient
+      # downstream blip doesn't fail an otherwise-good deploy. Deeper readiness
+      # (aggregated contributors) is on /health/ready for monitoring, not the gate.
+      health-check-url: /health

@@ -15,7 +15,7 @@ namespace HoneyDrunk.Notify.Providers.Email.Smtp;
 /// so no template re-rendering occurs at the provider boundary.
 /// </summary>
 #pragma warning disable CA1812
-internal sealed class SmtpNotificationSender(
+internal sealed partial class SmtpNotificationSender(
     ISecretStore secretStore,
     IOptions<SmtpOptions> options,
     ILogger<SmtpNotificationSender> logger) : INotificationSender
@@ -36,9 +36,7 @@ internal sealed class SmtpNotificationSender(
 
         if (envelope.Payload is not EmailEnvelope emailEnvelope)
         {
-            logger.LogError(
-                "Notification {NotificationId} has no EmailEnvelope payload. Cannot send via SMTP.",
-                envelope.NotificationId);
+            LogMissingPayload(logger, envelope.NotificationId);
 
             return DeliveryOutcome.Failed(
                 envelope.NotificationId,
@@ -71,10 +69,7 @@ internal sealed class SmtpNotificationSender(
 
             await client.SendMailAsync(message, cancellationToken);
 
-            logger.LogInformation(
-                "Notification {NotificationId} sent via SMTP to {To}.",
-                envelope.NotificationId,
-                emailEnvelope.To);
+            LogSent(logger, envelope.NotificationId, emailEnvelope.To);
 
             return DeliveryOutcome.Succeeded(
                 envelope.NotificationId,
@@ -84,11 +79,7 @@ internal sealed class SmtpNotificationSender(
         }
         catch (SmtpException ex) when (IsTransient(ex))
         {
-            logger.LogWarning(
-                ex,
-                "Transient SMTP failure for {NotificationId} to {To}.",
-                envelope.NotificationId,
-                emailEnvelope.To);
+            LogTransientFailure(logger, ex, envelope.NotificationId, emailEnvelope.To);
 
             return DeliveryOutcome.Failed(
                 envelope.NotificationId,
@@ -100,11 +91,7 @@ internal sealed class SmtpNotificationSender(
         }
         catch (SmtpException ex)
         {
-            logger.LogError(
-                ex,
-                "Permanent SMTP failure for {NotificationId} to {To}.",
-                envelope.NotificationId,
-                emailEnvelope.To);
+            LogPermanentFailure(logger, ex, envelope.NotificationId, emailEnvelope.To);
 
             return DeliveryOutcome.Failed(
                 envelope.NotificationId,
@@ -162,6 +149,34 @@ internal sealed class SmtpNotificationSender(
             or SmtpStatusCode.MailboxUnavailable
             or SmtpStatusCode.InsufficientStorage
             or SmtpStatusCode.ServiceClosingTransmissionChannel;
+
+    [LoggerMessage(
+        Level = LogLevel.Error,
+        Message = "Notification {NotificationId} has no EmailEnvelope payload. Cannot send via SMTP.")]
+    private static partial void LogMissingPayload(ILogger logger, NotificationId notificationId);
+
+    [LoggerMessage(
+        Level = LogLevel.Information,
+        Message = "Notification {NotificationId} sent via SMTP to {To}.")]
+    private static partial void LogSent(ILogger logger, NotificationId notificationId, string to);
+
+    [LoggerMessage(
+        Level = LogLevel.Warning,
+        Message = "Transient SMTP failure for {NotificationId} to {To}.")]
+    private static partial void LogTransientFailure(
+        ILogger logger,
+        Exception exception,
+        NotificationId notificationId,
+        string to);
+
+    [LoggerMessage(
+        Level = LogLevel.Error,
+        Message = "Permanent SMTP failure for {NotificationId} to {To}.")]
+    private static partial void LogPermanentFailure(
+        ILogger logger,
+        Exception exception,
+        NotificationId notificationId,
+        string to);
 
     private async Task<SmtpCredentials> GetCredentialsAsync(CancellationToken cancellationToken)
     {

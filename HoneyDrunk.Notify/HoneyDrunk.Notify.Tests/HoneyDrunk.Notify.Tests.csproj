@@ -12,6 +12,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\HoneyDrunk.Notify\HoneyDrunk.Notify.csproj" />
+    <ProjectReference Include="..\HoneyDrunk.Notify.Hosting.AspNetCore\HoneyDrunk.Notify.Hosting.AspNetCore.csproj" />
   </ItemGroup>
 
   <ItemGroup>

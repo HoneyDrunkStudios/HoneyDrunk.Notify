@@ -27,7 +27,7 @@ public sealed class CorrelationCanaryTests : IDisposable
         _listener = new ActivityListener
         {
             ShouldListenTo = source => source.Name == "HoneyDrunk.Notify",
-            Sample = (ref ActivityCreationOptions<ActivityContext> _) => ActivitySamplingResult.AllDataAndRecorded,
+            Sample = (ref _) => ActivitySamplingResult.AllDataAndRecorded,
             ActivityStopped = activity => _capturedActivities.Enqueue(activity),
         };
 
@@ -113,13 +113,11 @@ public sealed class CorrelationCanaryTests : IDisposable
     private sealed class FakeNotificationSender : INotificationSender
 #pragma warning restore CA1812
     {
-        private readonly List<NotificationEnvelope> _received = [];
-
-        internal IReadOnlyList<NotificationEnvelope> ReceivedEnvelopes => _received;
+        internal List<NotificationEnvelope> ReceivedEnvelopes { get; } = [];
 
         public Task<DeliveryOutcome> SendAsync(NotificationEnvelope envelope, CancellationToken cancellationToken = default)
         {
-            _received.Add(envelope);
+            ReceivedEnvelopes.Add(envelope);
 
             return Task.FromResult(DeliveryOutcome.Succeeded(
                 envelope.NotificationId,

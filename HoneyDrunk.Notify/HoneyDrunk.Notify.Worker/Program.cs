@@ -1,6 +1,7 @@
 using HoneyDrunk.Kernel.Abstractions;
 using HoneyDrunk.Kernel.Abstractions.Identity;
 using HoneyDrunk.Kernel.Hosting;
+using HoneyDrunk.Notify.Hosting.AspNetCore.Health;
 using HoneyDrunk.Notify.Hosting.AspNetCore.Options;
 using HoneyDrunk.Notify.Providers.Email.Resend;
 using HoneyDrunk.Notify.Providers.Email.Smtp;
@@ -47,6 +48,7 @@ builder.Services.Configure<AzureStorageQueueOptions>(options =>
 builder.Services.AddHoneyDrunkNotifyWorker(ConfigureWorkerOptions);
 
 var app = builder.Build();
+app.MapNotifyHealthEndpoints();
 app.MapVaultInvalidationWebhook("/internal/vault/invalidate");
 app.Run();
 

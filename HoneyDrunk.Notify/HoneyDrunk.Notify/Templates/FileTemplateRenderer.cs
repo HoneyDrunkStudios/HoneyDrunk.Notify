@@ -11,7 +11,7 @@ namespace HoneyDrunk.Notify.Templates;
 /// and performs <c>{{Token}}</c> replacement using the provided model.
 /// </summary>
 #pragma warning disable CA1812
-internal sealed class FileTemplateRenderer(
+internal sealed partial class FileTemplateRenderer(
     IOptions<TemplateOptions> options,
     TimeProvider timeProvider,
     ILogger<FileTemplateRenderer> logger) : ITemplateRenderer
@@ -56,6 +56,14 @@ internal sealed class FileTemplateRenderer(
         return fullPath;
     }
 
+    [LoggerMessage(
+        Level = LogLevel.Debug,
+        Message = "Cached template '{TemplateKey}' from '{Path}'.")]
+    private static partial void LogCachedTemplate(
+        ILogger logger,
+        string templateKey,
+        string path);
+
     private async Task<string> LoadTemplateAsync(TemplateKey templateKey, CancellationToken ct)
     {
         var templateOptions = options.Value;
@@ -80,7 +88,7 @@ internal sealed class FileTemplateRenderer(
         if (templateOptions.CacheEnabled)
         {
             _cache[filePath] = new CacheEntry(content, timeProvider.GetUtcNow());
-            logger.LogDebug("Cached template '{TemplateKey}' from '{Path}'.", (string)templateKey, filePath);
+            LogCachedTemplate(logger, (string)templateKey, filePath);
         }
 
         return content;

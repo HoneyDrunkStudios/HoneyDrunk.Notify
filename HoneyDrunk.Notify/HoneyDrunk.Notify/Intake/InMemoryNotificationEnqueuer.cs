@@ -36,6 +36,7 @@ internal sealed class InMemoryNotificationEnqueuer : INotificationEnqueuer
 
         while (results.Count < maxItems && _queue.TryDequeue(out var envelope))
         {
+            ct.ThrowIfCancellationRequested();
             results.Add(envelope);
         }
 

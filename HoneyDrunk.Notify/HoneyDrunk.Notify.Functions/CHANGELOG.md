@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-05-17
+
+### Added
+
+- Health endpoint at `GET /api/health` (`HealthFunction`). Aggregates the
+  registered `INotifyHealthContributor` set via the shared
+  `NotifyHealthEvaluator`; returns 503 only when the subsystem is Unhealthy.
+  Wired as the post-deploy readiness probe in `release-functions.yml`.
+
 ## [0.2.0] - 2026-05-05
 
 ### Changed

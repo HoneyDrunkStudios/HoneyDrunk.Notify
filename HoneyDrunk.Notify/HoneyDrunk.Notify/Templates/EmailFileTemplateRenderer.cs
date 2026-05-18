@@ -21,7 +21,7 @@ namespace HoneyDrunk.Notify.Templates;
 /// Caching follows the same <see cref="TemplateOptions"/> TTL as <see cref="FileTemplateRenderer"/>.
 /// </remarks>
 #pragma warning disable CA1812
-internal sealed class EmailFileTemplateRenderer(
+internal sealed partial class EmailFileTemplateRenderer(
     IOptions<TemplateOptions> options,
     TimeProvider timeProvider,
     ILogger<EmailFileTemplateRenderer> logger) : IEmailTemplateRenderer
@@ -62,6 +62,15 @@ internal sealed class EmailFileTemplateRenderer(
 
         return fullPath;
     }
+
+    [LoggerMessage(
+        Level = LogLevel.Debug,
+        Message = "Cached email template '{TemplateKey}{Suffix}' from '{Path}'.")]
+    private static partial void LogCachedEmailTemplate(
+        ILogger logger,
+        string templateKey,
+        string suffix,
+        string path);
 
     private async Task<(string content, bool isHtml)> LoadBodyTemplateAsync(
         TemplateKey templateKey, CancellationToken ct)
@@ -116,7 +125,7 @@ internal sealed class EmailFileTemplateRenderer(
         if (templateOptions.CacheEnabled)
         {
             _cache[filePath] = new CacheEntry(content, timeProvider.GetUtcNow());
-            logger.LogDebug("Cached email template '{TemplateKey}{Suffix}' from '{Path}'.", (string)templateKey, suffix, filePath);
+            LogCachedEmailTemplate(logger, (string)templateKey, suffix, filePath);
         }
 
         return content;
