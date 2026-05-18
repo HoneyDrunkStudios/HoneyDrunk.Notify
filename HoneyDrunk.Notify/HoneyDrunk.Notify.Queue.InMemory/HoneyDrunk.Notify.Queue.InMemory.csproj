@@ -9,7 +9,7 @@
 
     <!-- Package Metadata -->
     <PackageId>HoneyDrunk.Notify.Queue.InMemory</PackageId>
-    <Version>0.2.0</Version>
+    <Version>0.3.0</Version>
     <Authors>HoneyDrunk Studios</Authors>
     <Description>In-memory notification queue adapter for HoneyDrunk.Notify. Suitable for development, testing, and single-instance scenarios.</Description>
     <PackageTags>notify;queue;inmemory;notifications;grid</PackageTags>
@@ -37,8 +37,8 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.6" />
-    <PackageReference Include="Microsoft.Extensions.Options" Version="10.0.6" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.7" />
+    <PackageReference Include="Microsoft.Extensions.Options" Version="10.0.7" />
   </ItemGroup>
 
   <ItemGroup>
@@ -48,6 +48,10 @@
 
   <ItemGroup>
     <PackageReference Update="Microsoft.CodeAnalysis.NetAnalyzers" Version="10.0.202" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="..\HoneyDrunk.Notify.ProviderSupport\OptionsRegistrationExtensions.cs" Link="ProviderSupport\OptionsRegistrationExtensions.cs" />
+    <Compile Include="..\HoneyDrunk.Notify.ProviderSupport\QueueServiceCollectionRegistrationExtensions.cs" Link="ProviderSupport\QueueServiceCollectionRegistrationExtensions.cs" />
   </ItemGroup>
 
 </Project>

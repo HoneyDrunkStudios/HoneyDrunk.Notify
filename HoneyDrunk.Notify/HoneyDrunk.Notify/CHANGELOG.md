@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Consolidated file template loading/cache behavior behind a shared template loader.
+- Aligned package version to `0.3.0`.
+
 ## [0.2.0] - 2026-05-05
 
 ### Changed

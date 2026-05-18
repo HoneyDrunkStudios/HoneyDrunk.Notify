@@ -1,6 +1,6 @@
 using HoneyDrunk.Notify.Abstractions;
+using HoneyDrunk.Notify.ProviderSupport;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace HoneyDrunk.Notify.Providers.Sms.Twilio.DependencyInjection;
 
@@ -27,13 +27,7 @@ public static class TwilioNotifyServiceCollectionExtensions
         ArgumentNullException.ThrowIfNull(services);
         ArgumentNullException.ThrowIfNull(configure);
 
-        services.AddOptions<TwilioOptions>().Configure(configure);
-
-        services.TryAddSingleton<TwilioNotificationSender>();
-        services.TryAddKeyedSingleton<INotificationSender>(
-            NotificationChannel.Sms,
-            (sp, _) => sp.GetRequiredService<TwilioNotificationSender>());
-
-        return services;
+        services.ConfigureOptional(configure);
+        return services.TryAddNotificationSender<TwilioNotificationSender>(NotificationChannel.Sms);
     }
 }

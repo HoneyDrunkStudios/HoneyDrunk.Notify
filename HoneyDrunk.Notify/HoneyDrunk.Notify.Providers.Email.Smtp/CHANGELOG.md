@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Consolidated Vault secret lookup and DI registration boilerplate through shared Notify provider support.
+- Aligned package version to `0.3.0` and Vault dependency to `0.5.0`.
+
 ## [0.2.0] - 2026-05-05
 
 ### Changed

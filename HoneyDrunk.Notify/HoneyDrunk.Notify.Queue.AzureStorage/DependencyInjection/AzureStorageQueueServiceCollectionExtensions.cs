@@ -1,6 +1,6 @@
+using HoneyDrunk.Notify.ProviderSupport;
 using HoneyDrunk.Notify.Queue.Abstractions;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace HoneyDrunk.Notify.Queue.AzureStorage.DependencyInjection;
 
@@ -22,12 +22,7 @@ public static class AzureStorageQueueServiceCollectionExtensions
         ArgumentNullException.ThrowIfNull(services);
         ArgumentNullException.ThrowIfNull(configure);
 
-        services.AddOptions<AzureStorageQueueOptions>().Configure(configure);
-
-        services.TryAddSingleton<AzureStorageNotificationQueue>();
-        services.TryAddSingleton<INotificationQueue>(sp => sp.GetRequiredService<AzureStorageNotificationQueue>());
-        services.TryAddSingleton<IDeadLetterInspector>(sp => sp.GetRequiredService<AzureStorageNotificationQueue>());
-
-        return services;
+        services.ConfigureOptional(configure);
+        return services.TryAddNotificationQueue<AzureStorageNotificationQueue>();
     }
 }

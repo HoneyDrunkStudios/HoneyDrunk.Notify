@@ -1,6 +1,8 @@
 using Azure.Storage.Queues;
 using HoneyDrunk.Notify.Abstractions;
 using HoneyDrunk.Notify.Queue.Abstractions;
+using HoneyDrunk.Vault.Abstractions;
+using HoneyDrunk.Vault.Models;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System.Text.Json;
@@ -23,8 +25,9 @@ internal sealed partial class AzureStorageNotificationQueue : INotificationQueue
 
     private readonly AzureStorageQueueOptions _options;
     private readonly ILogger<AzureStorageNotificationQueue> _logger;
-    private readonly QueueClient _client;
+    private readonly ISecretStore? _secretStore;
     private readonly SemaphoreSlim _initLock = new(1, 1);
+    private QueueClient? _client;
     private QueueClient? _dlqClient;
     private bool _initialized;
     private bool _dlqInitialized;
@@ -36,24 +39,26 @@ internal sealed partial class AzureStorageNotificationQueue : INotificationQueue
     {
         _options = options.Value;
         _logger = logger;
+    }
 
-        if (string.IsNullOrWhiteSpace(_options.ConnectionString))
-            throw new InvalidOperationException("AzureStorageQueueOptions.ConnectionString is required.");
-
-        _client = new QueueClient(_options.ConnectionString, _options.QueueName, new QueueClientOptions
-        {
-            MessageEncoding = QueueMessageEncoding.Base64,
-        });
+    public AzureStorageNotificationQueue(
+        IOptions<AzureStorageQueueOptions> options,
+        ILogger<AzureStorageNotificationQueue> logger,
+        ISecretStore secretStore)
+    {
+        _options = options.Value;
+        _logger = logger;
+        _secretStore = secretStore;
     }
 
     /// <inheritdoc />
     public async Task EnqueueAsync(NotificationEnvelope envelope, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(envelope);
-        await EnsureQueueExistsAsync(ct);
+        var client = await EnsureQueueExistsAsync(ct);
 
         var json = JsonSerializer.Serialize(envelope, SerializerOptions);
-        await _client.SendMessageAsync(json, ct);
+        await client.SendMessageAsync(json, ct);
 
         LogEnqueued(_logger, envelope.NotificationId, _options.QueueName);
     }
@@ -61,10 +66,10 @@ internal sealed partial class AzureStorageNotificationQueue : INotificationQueue
     /// <inheritdoc />
     public async Task<IReadOnlyList<QueuedNotification>> DequeueBatchAsync(int max, CancellationToken ct = default)
     {
-        await EnsureQueueExistsAsync(ct);
+        var client = await EnsureQueueExistsAsync(ct);
 
         var effectiveMax = Math.Min(max, _options.MaxBatchSize);
-        var response = await _client.ReceiveMessagesAsync(effectiveMax, _options.VisibilityTimeout, ct);
+        var response = await client.ReceiveMessagesAsync(effectiveMax, _options.VisibilityTimeout, ct);
 
         if (response.Value is null || response.Value.Length == 0)
             return [];
@@ -92,7 +97,7 @@ internal sealed partial class AzureStorageNotificationQueue : INotificationQueue
 #pragma warning restore CA1031
             {
                 LogPoisonMessage(_logger, ex, msg.MessageId);
-                await _client.DeleteMessageAsync(msg.MessageId, msg.PopReceipt, ct);
+                await client.DeleteMessageAsync(msg.MessageId, msg.PopReceipt, ct);
             }
         }
 
@@ -103,18 +108,20 @@ internal sealed partial class AzureStorageNotificationQueue : INotificationQueue
     public async Task CompleteAsync(QueuedNotification item, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(item);
+        var client = await EnsureQueueExistsAsync(ct);
         var (messageId, popReceipt) = DecodeReceipt(item.Receipt);
-        await _client.DeleteMessageAsync(messageId, popReceipt, ct);
+        await client.DeleteMessageAsync(messageId, popReceipt, ct);
     }
 
     /// <inheritdoc />
     public async Task AbandonAsync(QueuedNotification item, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(item);
+        var client = await EnsureQueueExistsAsync(ct);
         var (messageId, popReceipt) = DecodeReceipt(item.Receipt);
 
         // Near-zero visibility timeout makes the message immediately available for redelivery
-        await _client.UpdateMessageAsync(messageId, popReceipt, visibilityTimeout: TimeSpan.FromSeconds(1), cancellationToken: ct);
+        await client.UpdateMessageAsync(messageId, popReceipt, visibilityTimeout: TimeSpan.FromSeconds(1), cancellationToken: ct);
     }
 
     /// <inheritdoc />
@@ -123,6 +130,7 @@ internal sealed partial class AzureStorageNotificationQueue : INotificationQueue
         ArgumentNullException.ThrowIfNull(item);
         ArgumentException.ThrowIfNullOrWhiteSpace(reason);
 
+        var client = await EnsureQueueExistsAsync(ct);
         await EnsureDlqExistsAsync(ct);
 
         var wrapper = new DeadLetterWrapper(item.Envelope, reason, DateTimeOffset.UtcNow, item.DeliveryCount)
@@ -133,7 +141,7 @@ internal sealed partial class AzureStorageNotificationQueue : INotificationQueue
         await _dlqClient!.SendMessageAsync(json, ct);
 
         var (messageId, popReceipt) = DecodeReceipt(item.Receipt);
-        await _client.DeleteMessageAsync(messageId, popReceipt, ct);
+        await client.DeleteMessageAsync(messageId, popReceipt, ct);
 
         LogDeadLettered(_logger, item.Envelope.NotificationId, item.DeliveryCount, reason);
     }
@@ -210,6 +218,37 @@ internal sealed partial class AzureStorageNotificationQueue : INotificationQueue
         await Task.CompletedTask;
     }
 
+    internal async Task<string> ResolveConnectionStringAsync(CancellationToken cancellationToken)
+    {
+        if (!string.IsNullOrWhiteSpace(_options.ConnectionString))
+        {
+            return _options.ConnectionString;
+        }
+
+        if (_secretStore is null)
+        {
+            throw new InvalidOperationException(
+                "Azure Storage Queue connection string must be provided directly for local tooling or resolved through ISecretStore for hosted workloads.");
+        }
+
+        if (string.IsNullOrWhiteSpace(_options.ConnectionStringSecretName))
+        {
+            throw new InvalidOperationException("AzureStorageQueueOptions.ConnectionStringSecretName is required.");
+        }
+
+        var secret = await _secretStore.GetSecretAsync(
+            new SecretIdentifier(_options.ConnectionStringSecretName),
+            cancellationToken);
+
+        if (string.IsNullOrWhiteSpace(secret.Value))
+        {
+            throw new InvalidOperationException(
+                $"Azure Storage Queue connection string secret '{_options.ConnectionStringSecretName}' resolved to an empty value.");
+        }
+
+        return secret.Value;
+    }
+
     private static DeadLetterEntry WrapperToEntry(DeadLetterWrapper wrapper) =>
         new(wrapper.NotificationId ?? string.Empty, wrapper.DeliveryCount, wrapper.Reason, wrapper.Envelope)
         {
@@ -281,7 +320,7 @@ internal sealed partial class AzureStorageNotificationQueue : INotificationQueue
     private async Task<bool> MutateDlqItemAsync(string notificationId, bool replay, CancellationToken ct)
     {
         await EnsureDlqExistsAsync(ct);
-        await EnsureQueueExistsAsync(ct);
+        var client = await EnsureQueueExistsAsync(ct);
 
         // Azure Storage Queues don't support selective delete; receive a batch and scan
         var response = await _dlqClient!.ReceiveMessagesAsync(32, TimeSpan.FromSeconds(30), ct);
@@ -301,7 +340,7 @@ internal sealed partial class AzureStorageNotificationQueue : INotificationQueue
                 if (replay && wrapper.Envelope is not null)
                 {
                     var json = JsonSerializer.Serialize(wrapper.Envelope, SerializerOptions);
-                    await _client.SendMessageAsync(json, ct);
+                    await client.SendMessageAsync(json, ct);
                 }
 
                 await _dlqClient.DeleteMessageAsync(msg.MessageId, msg.PopReceipt, ct);
@@ -320,25 +359,28 @@ internal sealed partial class AzureStorageNotificationQueue : INotificationQueue
         return found;
     }
 
-    private async Task EnsureQueueExistsAsync(CancellationToken ct)
+    private async Task<QueueClient> EnsureQueueExistsAsync(CancellationToken ct)
     {
-        if (_initialized)
+        if (_initialized && _client is not null)
         {
-            return;
+            return _client;
         }
 
         await _initLock.WaitAsync(ct);
         try
         {
-            if (_initialized)
+            if (_initialized && _client is not null)
             {
-                return;
+                return _client;
             }
+
+            _client = await CreateQueueClientAsync(_options.QueueName, ct);
 
             if (_options.CreateIfNotExists)
                 await _client.CreateIfNotExistsAsync(cancellationToken: ct);
 
             _initialized = true;
+            return _client;
         }
         finally
         {
@@ -361,10 +403,7 @@ internal sealed partial class AzureStorageNotificationQueue : INotificationQueue
                 return;
             }
 
-            _dlqClient = new QueueClient(_options.ConnectionString, _options.EffectiveDeadLetterQueueName, new QueueClientOptions
-            {
-                MessageEncoding = QueueMessageEncoding.Base64,
-            });
+            _dlqClient = await CreateQueueClientAsync(_options.EffectiveDeadLetterQueueName, ct);
 
             if (_options.CreateIfNotExists)
                 await _dlqClient.CreateIfNotExistsAsync(cancellationToken: ct);
@@ -375,6 +414,15 @@ internal sealed partial class AzureStorageNotificationQueue : INotificationQueue
         {
             _initLock.Release();
         }
+    }
+
+    private async Task<QueueClient> CreateQueueClientAsync(string queueName, CancellationToken cancellationToken)
+    {
+        var connectionString = await ResolveConnectionStringAsync(cancellationToken);
+        return new QueueClient(connectionString, queueName, new QueueClientOptions
+        {
+            MessageEncoding = QueueMessageEncoding.Base64,
+        });
     }
 
     private sealed record DeadLetterWrapper(

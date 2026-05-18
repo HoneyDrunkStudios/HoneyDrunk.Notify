@@ -1,7 +1,7 @@
 using HoneyDrunk.Notify.Abstractions;
 using HoneyDrunk.Notify.Abstractions.Models.Email;
+using HoneyDrunk.Notify.ProviderSupport;
 using HoneyDrunk.Vault.Abstractions;
-using HoneyDrunk.Vault.Models;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System.Net;
@@ -180,15 +180,9 @@ internal sealed partial class SmtpNotificationSender(
 
     private async Task<SmtpCredentials> GetCredentialsAsync(CancellationToken cancellationToken)
     {
-        var username = await GetSecretValueAsync(UsernameSecretName, cancellationToken);
-        var password = await GetSecretValueAsync(PasswordSecretName, cancellationToken);
+        var username = await secretStore.GetRequiredSecretValueAsync(UsernameSecretName, cancellationToken);
+        var password = await secretStore.GetRequiredSecretValueAsync(PasswordSecretName, cancellationToken);
         return new SmtpCredentials(username, password);
-    }
-
-    private async Task<string> GetSecretValueAsync(string secretName, CancellationToken cancellationToken)
-    {
-        var secret = await secretStore.GetSecretAsync(new SecretIdentifier(secretName), cancellationToken);
-        return secret.Value;
     }
 
     private sealed record SmtpCredentials(string Username, string Password);

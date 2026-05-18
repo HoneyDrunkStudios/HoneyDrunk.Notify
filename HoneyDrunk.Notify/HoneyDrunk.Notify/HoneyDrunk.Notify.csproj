@@ -9,7 +9,7 @@
 
     <!-- Package Metadata -->
     <PackageId>HoneyDrunk.Notify</PackageId>
-    <Version>0.2.0</Version>
+    <Version>0.3.0</Version>
     <Authors>HoneyDrunk Studios</Authors>
     <Description>Runtime implementations for HoneyDrunk.Notify – the Grid notification subsystem. Provides notification dispatching, channel routing, template rendering, and delivery orchestration.</Description>
     <PackageTags>notify;runtime;notifications;dispatch;channels;templates;grid</PackageTags>
@@ -37,9 +37,9 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.6" />
-    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.6" />
-    <PackageReference Include="Microsoft.Extensions.Options" Version="10.0.6" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.7" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.7" />
+    <PackageReference Include="Microsoft.Extensions.Options" Version="10.0.7" />
   </ItemGroup>
 
   <ItemGroup>

@@ -11,7 +11,16 @@ public sealed class AzureStorageQueueOptions : NotificationQueueOptions
     /// <summary>
     /// Gets or sets the Azure Storage connection string.
     /// </summary>
+    /// <remarks>
+    /// Prefer <see cref="ConnectionStringSecretName" /> for hosted Grid workloads. This remains for
+    /// local tooling and development scenarios where no Vault bootstrap is available.
+    /// </remarks>
     public string ConnectionString { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Gets or sets the Vault secret name containing the Azure Storage connection string.
+    /// </summary>
+    public string ConnectionStringSecretName { get; set; } = "NotifyQueueConnection";
 
     /// <summary>
     /// Gets or sets a value indicating whether to create the queue if it does not exist on first use.

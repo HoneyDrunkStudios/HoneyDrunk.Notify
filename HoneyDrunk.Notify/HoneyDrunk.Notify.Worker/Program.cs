@@ -1,6 +1,7 @@
 using HoneyDrunk.Kernel.Abstractions;
 using HoneyDrunk.Kernel.Abstractions.Identity;
 using HoneyDrunk.Kernel.Hosting;
+using HoneyDrunk.Notify.HostBootstrap;
 using HoneyDrunk.Notify.Hosting.AspNetCore.Health;
 using HoneyDrunk.Notify.Hosting.AspNetCore.Options;
 using HoneyDrunk.Notify.Providers.Email.Resend;
@@ -15,15 +16,13 @@ using HoneyDrunk.Vault.Providers.AzureKeyVault.Extensions;
 using Microsoft.AspNetCore.Builder;
 using GridEnvironments = HoneyDrunk.Kernel.Abstractions.Environments;
 
-const string NotifyNodeId = "honeydrunk-notify";
-
 var builder = WebApplication.CreateBuilder(args);
-builder.Configuration["HONEYDRUNK_NODE_ID"] = NotifyNodeId;
+var notifyNodeId = NotifyNodeIdentity.ResolveNodeId(builder.Configuration);
 
 builder.Services
     .AddHoneyDrunkNode(options =>
     {
-        options.NodeId = new NodeId(NotifyNodeId);
+        options.NodeId = notifyNodeId;
         options.SectorId = Sectors.Ops;
         options.EnvironmentId = ResolveEnvironment(builder.Configuration);
         options.Version = typeof(Program).Assembly.GetName().Version?.ToString() ?? "0.1.0";
@@ -42,7 +41,7 @@ builder.Services.Configure<TwilioOptions>(builder.Configuration.GetSection("Twil
 builder.Services.Configure<SmtpOptions>(builder.Configuration.GetSection("Smtp"));
 builder.Services.Configure<AzureStorageQueueOptions>(options =>
 {
-    options.ConnectionString = builder.Configuration["NotifyQueueConnection"] ?? string.Empty;
+    builder.Configuration.GetSection("NotifyQueue").Bind(options);
 });
 
 builder.Services.AddHoneyDrunkNotifyWorker(ConfigureWorkerOptions);
