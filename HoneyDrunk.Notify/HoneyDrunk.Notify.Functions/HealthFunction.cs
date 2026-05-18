@@ -2,6 +2,7 @@ using HoneyDrunk.Notify.Hosting.AspNetCore.Health;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
 using System.Net;
+using System.Text.Json;
 
 namespace HoneyDrunk.Notify.Functions;
 
@@ -35,13 +36,14 @@ public sealed class HealthFunction(NotifyHealthEvaluator evaluator)
             ? HttpStatusCode.ServiceUnavailable
             : HttpStatusCode.OK;
 
-        var response = request.CreateResponse();
-        await response.WriteAsJsonAsync(
-            new { status = report.Status.ToString(), message = report.Message },
+        // Mirrors VaultInvalidationFunction: create with the final status and
+        // write the body with WriteStringAsync, which (unlike WriteAsJsonAsync)
+        // does not reset StatusCode — so no post-write status mutation.
+        var response = request.CreateResponse(statusCode);
+        response.Headers.Add("Content-Type", "application/json; charset=utf-8");
+        await response.WriteStringAsync(
+            JsonSerializer.Serialize(new { status = report.Status.ToString(), message = report.Message }),
             cancellationToken);
-
-        // WriteAsJsonAsync defaults the response to 200; set the real status last.
-        response.StatusCode = statusCode;
 
         return response;
     }
