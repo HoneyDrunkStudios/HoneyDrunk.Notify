@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-05-18
+
 ### Changed
 
 - Aligned package version to `0.3.0` and Kernel abstractions dependency to `0.7.0`.
