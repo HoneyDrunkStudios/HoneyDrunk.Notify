@@ -27,7 +27,7 @@ public sealed class CorrelationCanaryTests : IDisposable
         _listener = new ActivityListener
         {
             ShouldListenTo = source => source.Name == "HoneyDrunk.Notify",
-            Sample = (ref ActivityCreationOptions<ActivityContext> _) => ActivitySamplingResult.AllDataAndRecorded,
+            Sample = (ref _) => ActivitySamplingResult.AllDataAndRecorded,
             ActivityStopped = activity => _capturedActivities.Enqueue(activity),
         };
 
@@ -115,7 +115,7 @@ public sealed class CorrelationCanaryTests : IDisposable
     {
         private readonly List<NotificationEnvelope> _received = [];
 
-        internal IReadOnlyList<NotificationEnvelope> ReceivedEnvelopes => _received;
+        internal List<NotificationEnvelope> ReceivedEnvelopes => _received;
 
         public Task<DeliveryOutcome> SendAsync(NotificationEnvelope envelope, CancellationToken cancellationToken = default)
         {

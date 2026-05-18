@@ -13,7 +13,7 @@ namespace HoneyDrunk.Notify.Providers.Email.Resend;
 /// Reads the rendered <see cref="EmailEnvelope"/> from <see cref="NotificationEnvelope.Payload"/>.
 /// </summary>
 #pragma warning disable CA1812
-internal sealed class ResendNotificationSender(
+internal sealed partial class ResendNotificationSender(
     IHttpClientFactory httpClientFactory,
     ISecretStore secretStore,
     IOptions<ResendOptions> options,
@@ -35,9 +35,7 @@ internal sealed class ResendNotificationSender(
 
         if (envelope.Payload is not EmailEnvelope emailEnvelope)
         {
-            logger.LogError(
-                "Notification {NotificationId} has no EmailEnvelope payload. Cannot send via Resend.",
-                envelope.NotificationId);
+            LogMissingPayload(logger, envelope.NotificationId);
 
             return DeliveryOutcome.Failed(
                 envelope.NotificationId,
@@ -114,11 +112,7 @@ internal sealed class ResendNotificationSender(
                     response.Exception?.Message ?? "Resend API returned a failure response.");
             }
 
-            logger.LogInformation(
-                "Notification {NotificationId} sent via Resend to {To}. Id: {ResendId}.",
-                envelope.NotificationId,
-                emailEnvelope.To,
-                response.Content);
+            LogSent(logger, envelope.NotificationId, emailEnvelope.To, response.Content);
 
             return DeliveryOutcome.Succeeded(
                 envelope.NotificationId,
@@ -129,11 +123,7 @@ internal sealed class ResendNotificationSender(
         }
         catch (ResendException ex) when (ex.IsTransient)
         {
-            logger.LogWarning(
-                ex,
-                "Transient Resend failure for {NotificationId} to {To}.",
-                envelope.NotificationId,
-                emailEnvelope.To);
+            LogTransientFailure(logger, ex, envelope.NotificationId, emailEnvelope.To);
 
             return DeliveryOutcome.Failed(
                 envelope.NotificationId,
@@ -145,11 +135,7 @@ internal sealed class ResendNotificationSender(
         }
         catch (ResendException ex)
         {
-            logger.LogError(
-                ex,
-                "Permanent Resend failure for {NotificationId} to {To}.",
-                envelope.NotificationId,
-                emailEnvelope.To);
+            LogPermanentFailure(logger, ex, envelope.NotificationId, emailEnvelope.To);
 
             return DeliveryOutcome.Failed(
                 envelope.NotificationId,
@@ -161,13 +147,45 @@ internal sealed class ResendNotificationSender(
         }
     }
 
+    [LoggerMessage(
+        Level = LogLevel.Error,
+        Message = "Notification {NotificationId} has no EmailEnvelope payload. Cannot send via Resend.")]
+    private static partial void LogMissingPayload(ILogger logger, NotificationId notificationId);
+
+    [LoggerMessage(
+        Level = LogLevel.Information,
+        Message = "Notification {NotificationId} sent via Resend to {To}. Id: {ResendId}.")]
+    private static partial void LogSent(
+        ILogger logger,
+        NotificationId notificationId,
+        string to,
+        Guid resendId);
+
+    [LoggerMessage(
+        Level = LogLevel.Warning,
+        Message = "Transient Resend failure for {NotificationId} to {To}.")]
+    private static partial void LogTransientFailure(
+        ILogger logger,
+        Exception exception,
+        NotificationId notificationId,
+        string to);
+
+    [LoggerMessage(
+        Level = LogLevel.Error,
+        Message = "Permanent Resend failure for {NotificationId} to {To}.")]
+    private static partial void LogPermanentFailure(
+        ILogger logger,
+        Exception exception,
+        NotificationId notificationId,
+        string to);
+
     private async Task<string> GetSecretValueAsync(string secretName, CancellationToken cancellationToken)
     {
         var secret = await secretStore.GetSecretAsync(new SecretIdentifier(secretName), cancellationToken);
         return secret.Value;
     }
 
-    private IResend CreateResendClient(string apiKey)
+    private ResendClient CreateResendClient(string apiKey)
     {
         var clientOptions = new ResendClientOptions
         {

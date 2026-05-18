@@ -11,7 +11,7 @@ namespace HoneyDrunk.Notify.Functions;
 /// Deserializes the <see cref="NotificationEnvelope"/> and dispatches it
 /// through the core <see cref="NotificationDispatcher"/> retry engine.
 /// </summary>
-public sealed class NotifyDispatcherFunction(
+public sealed partial class NotifyDispatcherFunction(
     NotificationDispatcher dispatcher,
     ILogger<NotifyDispatcherFunction> logger)
 {
@@ -40,8 +40,8 @@ public sealed class NotifyDispatcherFunction(
             return;
         }
 
-        logger.LogInformation(
-            "Dispatching NotificationId={NotificationId}, Channel={Channel}, CorrelationId={CorrelationId}.",
+        LogDispatching(
+            logger,
             envelope.NotificationId,
             envelope.Channel,
             envelope.CorrelationId);
@@ -55,9 +55,23 @@ public sealed class NotifyDispatcherFunction(
                 $"Notification {outcome.NotificationId} delivery failed: {outcome.FailureKind} — {outcome.ErrorMessage}");
         }
 
-        logger.LogInformation(
-            "Notification {NotificationId} dispatched successfully via {Provider}.",
-            outcome.NotificationId,
-            outcome.Provider);
+        LogDispatchedSuccessfully(logger, outcome.NotificationId, outcome.Provider);
     }
+
+    [LoggerMessage(
+        Level = LogLevel.Information,
+        Message = "Dispatching NotificationId={NotificationId}, Channel={Channel}, CorrelationId={CorrelationId}.")]
+    private static partial void LogDispatching(
+        ILogger logger,
+        NotificationId notificationId,
+        NotificationChannel channel,
+        string? correlationId);
+
+    [LoggerMessage(
+        Level = LogLevel.Information,
+        Message = "Notification {NotificationId} dispatched successfully via {Provider}.")]
+    private static partial void LogDispatchedSuccessfully(
+        ILogger logger,
+        NotificationId notificationId,
+        string provider);
 }

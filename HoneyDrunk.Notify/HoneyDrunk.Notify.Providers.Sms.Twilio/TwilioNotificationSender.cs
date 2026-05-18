@@ -15,7 +15,7 @@ namespace HoneyDrunk.Notify.Providers.Sms.Twilio;
 /// Reads the rendered <see cref="SmsEnvelope"/> from <see cref="NotificationEnvelope.Payload"/>.
 /// </summary>
 #pragma warning disable CA1812
-internal sealed class TwilioNotificationSender(
+internal sealed partial class TwilioNotificationSender(
     ISecretStore secretStore,
     IOptions<TwilioOptions> options,
     ILogger<TwilioNotificationSender> logger) : INotificationSender
@@ -36,9 +36,7 @@ internal sealed class TwilioNotificationSender(
 
         if (envelope.Payload is not SmsEnvelope smsEnvelope)
         {
-            logger.LogError(
-                "Notification {NotificationId} has no SmsEnvelope payload. Cannot send via Twilio.",
-                envelope.NotificationId);
+            LogMissingPayload(logger, envelope.NotificationId);
 
             return DeliveryOutcome.Failed(
                 envelope.NotificationId,
@@ -75,11 +73,7 @@ internal sealed class TwilioNotificationSender(
                 body: smsEnvelope.Body,
                 client: client);
 
-            logger.LogInformation(
-                "Notification {NotificationId} sent via Twilio to {To}. SID: {MessageSid}.",
-                envelope.NotificationId,
-                smsEnvelope.To,
-                message.Sid);
+            LogSent(logger, envelope.NotificationId, smsEnvelope.To, message.Sid);
 
             return DeliveryOutcome.Succeeded(
                 envelope.NotificationId,
@@ -90,11 +84,7 @@ internal sealed class TwilioNotificationSender(
         }
         catch (global::Twilio.Exceptions.ApiException ex) when (IsTransient(ex))
         {
-            logger.LogWarning(
-                ex,
-                "Transient Twilio failure for {NotificationId} to {To}.",
-                envelope.NotificationId,
-                smsEnvelope.To);
+            LogTransientFailure(logger, ex, envelope.NotificationId, smsEnvelope.To);
 
             return DeliveryOutcome.Failed(
                 envelope.NotificationId,
@@ -106,11 +96,7 @@ internal sealed class TwilioNotificationSender(
         }
         catch (global::Twilio.Exceptions.ApiException ex)
         {
-            logger.LogError(
-                ex,
-                "Permanent Twilio failure for {NotificationId} to {To}.",
-                envelope.NotificationId,
-                smsEnvelope.To);
+            LogPermanentFailure(logger, ex, envelope.NotificationId, smsEnvelope.To);
 
             return DeliveryOutcome.Failed(
                 envelope.NotificationId,
@@ -125,6 +111,38 @@ internal sealed class TwilioNotificationSender(
     // Twilio HTTP 429 or 5xx are transient
     private static bool IsTransient(global::Twilio.Exceptions.ApiException ex) =>
         ex.Status is 429 or >= 500;
+
+    [LoggerMessage(
+        Level = LogLevel.Error,
+        Message = "Notification {NotificationId} has no SmsEnvelope payload. Cannot send via Twilio.")]
+    private static partial void LogMissingPayload(ILogger logger, NotificationId notificationId);
+
+    [LoggerMessage(
+        Level = LogLevel.Information,
+        Message = "Notification {NotificationId} sent via Twilio to {To}. SID: {MessageSid}.")]
+    private static partial void LogSent(
+        ILogger logger,
+        NotificationId notificationId,
+        string to,
+        string messageSid);
+
+    [LoggerMessage(
+        Level = LogLevel.Warning,
+        Message = "Transient Twilio failure for {NotificationId} to {To}.")]
+    private static partial void LogTransientFailure(
+        ILogger logger,
+        Exception exception,
+        NotificationId notificationId,
+        string to);
+
+    [LoggerMessage(
+        Level = LogLevel.Error,
+        Message = "Permanent Twilio failure for {NotificationId} to {To}.")]
+    private static partial void LogPermanentFailure(
+        ILogger logger,
+        Exception exception,
+        NotificationId notificationId,
+        string to);
 
     private async Task<string> GetSecretValueAsync(string secretName, CancellationToken cancellationToken)
     {

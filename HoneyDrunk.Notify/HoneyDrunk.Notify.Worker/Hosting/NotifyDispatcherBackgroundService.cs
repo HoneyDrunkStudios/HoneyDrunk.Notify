@@ -14,7 +14,7 @@ namespace HoneyDrunk.Notify.Worker.Hosting;
 /// Emits structured logs with per-cycle metrics and per-item correlation.
 /// </summary>
 #pragma warning disable CA1812 // Instantiated via DI (AddHostedService)
-internal sealed class NotifyDispatcherBackgroundService(
+internal sealed partial class NotifyDispatcherBackgroundService(
     INotificationQueue queue,
     NotificationDispatcher dispatcher,
     IOptions<NotifyWorkerOptions> workerOptions,
@@ -34,10 +34,7 @@ internal sealed class NotifyDispatcherBackgroundService(
             return;
         }
 
-        logger.LogInformation(
-            "Notify dispatcher started. PollInterval={PollInterval}, BatchSize={BatchSize}.",
-            options.PollInterval,
-            options.BatchSize);
+        LogStarted(logger, options.PollInterval, options.BatchSize);
 
         var maxDeliveryAttempts = queueOptions.Value.MaxDeliveryAttempts;
 
@@ -55,8 +52,8 @@ internal sealed class NotifyDispatcherBackgroundService(
 
                 foreach (var item in batch)
                 {
-                    logger.LogDebug(
-                        "Processing NotificationId={NotificationId}, DeliveryCount={DeliveryCount}, CorrelationId={CorrelationId}.",
+                    LogProcessing(
+                        logger,
                         item.Envelope.NotificationId,
                         item.DeliveryCount,
                         item.Envelope.CorrelationId);
@@ -71,8 +68,8 @@ internal sealed class NotifyDispatcherBackgroundService(
                             await queue.DeadLetterAsync(item, dlqReason, stoppingToken);
                             deadLetteredCount++;
 
-                            logger.LogWarning(
-                                "{Event}: NotificationId={NotificationId}, DeliveryCount={DeliveryCount}, Status={Status}, FailureKind={FailureKind}, CorrelationId={CorrelationId}.",
+                            LogDeadLettered(
+                                logger,
                                 NotifyEventNames.QueueDeadLettered,
                                 outcome.NotificationId,
                                 item.DeliveryCount,
@@ -85,8 +82,8 @@ internal sealed class NotifyDispatcherBackgroundService(
                             await queue.AbandonAsync(item, stoppingToken);
                             abandonedCount++;
 
-                            logger.LogInformation(
-                                "Notification {NotificationId} abandoned for redelivery (attempt {DeliveryCount}/{MaxAttempts}, {Status}/{FailureKind}), CorrelationId={CorrelationId}.",
+                            LogAbandoned(
+                                logger,
                                 outcome.NotificationId,
                                 item.DeliveryCount,
                                 maxDeliveryAttempts,
@@ -100,8 +97,8 @@ internal sealed class NotifyDispatcherBackgroundService(
                         await queue.CompleteAsync(item, stoppingToken);
                         completedCount++;
 
-                        logger.LogInformation(
-                            "Notification {NotificationId} completed via {Channel}/{Provider}: {Status}, CorrelationId={CorrelationId}.",
+                        LogCompleted(
+                            logger,
                             outcome.NotificationId,
                             outcome.Channel,
                             outcome.Provider,
@@ -121,8 +118,8 @@ internal sealed class NotifyDispatcherBackgroundService(
                 logger.LogError(ex, "Unhandled error during notification dispatch cycle.");
             }
 
-            logger.LogDebug(
-                "Poll cycle complete. BatchSize={BatchSize}, Dequeued={DequeuedCount}, Completed={CompletedCount}, Abandoned={AbandonedCount}, DeadLettered={DeadLetteredCount}.",
+            LogPollCycleComplete(
+                logger,
                 options.BatchSize,
                 dequeuedCount,
                 completedCount,
@@ -147,4 +144,67 @@ internal sealed class NotifyDispatcherBackgroundService(
             DeliveryStatus.Failed when outcome.FailureKind == FailureKind.Transient => true,
             _ => false,
         };
+
+    [LoggerMessage(
+        Level = LogLevel.Information,
+        Message = "Notify dispatcher started. PollInterval={PollInterval}, BatchSize={BatchSize}.")]
+    private static partial void LogStarted(
+        ILogger logger,
+        TimeSpan pollInterval,
+        int batchSize);
+
+    [LoggerMessage(
+        Level = LogLevel.Debug,
+        Message = "Processing NotificationId={NotificationId}, DeliveryCount={DeliveryCount}, CorrelationId={CorrelationId}.")]
+    private static partial void LogProcessing(
+        ILogger logger,
+        NotificationId notificationId,
+        int deliveryCount,
+        string? correlationId);
+
+    [LoggerMessage(
+        Level = LogLevel.Warning,
+        Message = "{Event}: NotificationId={NotificationId}, DeliveryCount={DeliveryCount}, Status={Status}, FailureKind={FailureKind}, CorrelationId={CorrelationId}.")]
+    private static partial void LogDeadLettered(
+        ILogger logger,
+        string @event,
+        NotificationId notificationId,
+        int deliveryCount,
+        DeliveryStatus status,
+        FailureKind failureKind,
+        string? correlationId);
+
+    [LoggerMessage(
+        Level = LogLevel.Information,
+        Message = "Notification {NotificationId} abandoned for redelivery (attempt {DeliveryCount}/{MaxAttempts}, {Status}/{FailureKind}), CorrelationId={CorrelationId}.")]
+    private static partial void LogAbandoned(
+        ILogger logger,
+        NotificationId notificationId,
+        int deliveryCount,
+        int maxAttempts,
+        DeliveryStatus status,
+        FailureKind failureKind,
+        string? correlationId);
+
+    [LoggerMessage(
+        Level = LogLevel.Information,
+        Message = "Notification {NotificationId} completed via {Channel}/{Provider}: {Status}, CorrelationId={CorrelationId}.")]
+    private static partial void LogCompleted(
+        ILogger logger,
+        NotificationId notificationId,
+        NotificationChannel channel,
+        string provider,
+        DeliveryStatus status,
+        string? correlationId);
+
+    [LoggerMessage(
+        Level = LogLevel.Debug,
+        Message = "Poll cycle complete. BatchSize={BatchSize}, Dequeued={DequeuedCount}, Completed={CompletedCount}, Abandoned={AbandonedCount}, DeadLettered={DeadLetteredCount}.")]
+    private static partial void LogPollCycleComplete(
+        ILogger logger,
+        int batchSize,
+        int dequeuedCount,
+        int completedCount,
+        int abandonedCount,
+        int deadLetteredCount);
 }

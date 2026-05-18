@@ -9,7 +9,7 @@ namespace HoneyDrunk.Notify.Hosting.AspNetCore.Health;
 /// <param name="contributors">All registered notification health contributors.</param>
 public sealed class NotifyHealthEvaluator(IEnumerable<INotifyHealthContributor> contributors)
 {
-    private readonly IReadOnlyList<INotifyHealthContributor> _contributors = contributors.ToList();
+    private readonly List<INotifyHealthContributor> _contributors = [.. contributors];
 
     /// <summary>
     /// Evaluates every contributor and returns the aggregate report. The aggregate

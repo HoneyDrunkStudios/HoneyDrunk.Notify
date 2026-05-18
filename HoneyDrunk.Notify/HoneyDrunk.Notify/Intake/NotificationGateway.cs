@@ -14,7 +14,7 @@ namespace HoneyDrunk.Notify.Intake;
 /// renders channel-specific payloads, builds envelopes, and enqueues them for delivery.
 /// </summary>
 #pragma warning disable CA1812
-internal sealed class NotificationGateway(
+internal sealed partial class NotificationGateway(
     IOptions<NotifyRuntimeOptions> options,
     INotificationEnqueuer enqueuer,
     IIdempotencyStore idempotencyStore,
@@ -41,8 +41,8 @@ internal sealed class NotificationGateway(
         if (!runtimeOptions.Enabled)
         {
             SetRejected(activity, "RuntimeDisabled");
-            logger.LogWarning(
-                "{Event}: Notification pipeline disabled. NotificationId={NotificationId}, Channel={Channel}, TemplateKey={TemplateKey}.",
+            LogPipelineDisabled(
+                logger,
                 NotifyEventNames.EnqueueRejected,
                 notificationId,
                 request.Channel,
@@ -54,8 +54,8 @@ internal sealed class NotificationGateway(
         if (validationError is not null)
         {
             SetRejected(activity, "ValidationFailed");
-            logger.LogWarning(
-                "{Event}: NotificationId={NotificationId}, Channel={Channel}, TemplateKey={TemplateKey}, Detail={Detail}.",
+            LogValidationFailed(
+                logger,
                 NotifyEventNames.EnqueueRejected,
                 notificationId,
                 request.Channel,
@@ -74,8 +74,8 @@ internal sealed class NotificationGateway(
             if (!claimed)
             {
                 SetRejected(activity, "DuplicateIdempotencyKey");
-                logger.LogInformation(
-                    "{Event}: Duplicate IdempotencyKey={Key}, NotificationId={NotificationId}.",
+                LogDuplicateIdempotencyKey(
+                    logger,
                     NotifyEventNames.EnqueueRejected,
                     key,
                     notificationId);
@@ -110,8 +110,8 @@ internal sealed class NotificationGateway(
 
         activity?.SetTag("correlation.id", envelope.CorrelationId);
 
-        logger.LogInformation(
-            "{Event}: NotificationId={NotificationId}, Channel={Channel}, TemplateKey={TemplateKey}, CorrelationId={CorrelationId}.",
+        LogEnqueueAccepted(
+            logger,
             NotifyEventNames.EnqueueAccepted,
             notificationId,
             effectiveRequest.Channel,
@@ -149,6 +149,47 @@ internal sealed class NotificationGateway(
         activity.SetTag("rejection.reason", reason);
         activity.SetStatus(ActivityStatusCode.Error, reason);
     }
+
+    [LoggerMessage(
+        Level = LogLevel.Warning,
+        Message = "{Event}: Notification pipeline disabled. NotificationId={NotificationId}, Channel={Channel}, TemplateKey={TemplateKey}.")]
+    private static partial void LogPipelineDisabled(
+        ILogger logger,
+        string @event,
+        NotificationId notificationId,
+        NotificationChannel channel,
+        string templateKey);
+
+    [LoggerMessage(
+        Level = LogLevel.Warning,
+        Message = "{Event}: NotificationId={NotificationId}, Channel={Channel}, TemplateKey={TemplateKey}, Detail={Detail}.")]
+    private static partial void LogValidationFailed(
+        ILogger logger,
+        string @event,
+        NotificationId notificationId,
+        NotificationChannel channel,
+        string templateKey,
+        string? detail);
+
+    [LoggerMessage(
+        Level = LogLevel.Information,
+        Message = "{Event}: Duplicate IdempotencyKey={Key}, NotificationId={NotificationId}.")]
+    private static partial void LogDuplicateIdempotencyKey(
+        ILogger logger,
+        string @event,
+        string key,
+        NotificationId notificationId);
+
+    [LoggerMessage(
+        Level = LogLevel.Information,
+        Message = "{Event}: NotificationId={NotificationId}, Channel={Channel}, TemplateKey={TemplateKey}, CorrelationId={CorrelationId}.")]
+    private static partial void LogEnqueueAccepted(
+        ILogger logger,
+        string @event,
+        NotificationId notificationId,
+        NotificationChannel channel,
+        string templateKey,
+        string? correlationId);
 
     private async Task<object?> RenderChannelPayloadAsync(
         NotificationRequest request, CancellationToken ct)
