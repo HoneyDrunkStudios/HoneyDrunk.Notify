@@ -11,6 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Aligned Notify hosts with Kernel canonical identity fallback while preserving deploy-time `HONEYDRUNK_NODE_ID`/`Grid:NodeId` overrides.
+- Moved Azure Storage Queue runtime connection resolution behind Vault-backed `ISecretStore`, keeping direct connection strings only for local tooling and Functions trigger binding settings as deployment-provided.
+- Consolidated Notify template file loading/cache, provider secret lookup, and provider/queue DI registration helpers.
+- Aligned package versions to `0.3.0`, Kernel dependencies to `0.7.0`, and Vault dependencies to `0.5.0`.
+
 ## [0.2.0] - 2026-05-05
 
 ### Changed

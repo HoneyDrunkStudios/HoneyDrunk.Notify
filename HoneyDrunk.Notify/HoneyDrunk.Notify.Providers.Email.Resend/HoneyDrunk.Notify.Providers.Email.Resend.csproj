@@ -9,7 +9,7 @@
 
     <!-- Package Metadata -->
     <PackageId>HoneyDrunk.Notify.Providers.Email.Resend</PackageId>
-    <Version>0.2.0</Version>
+    <Version>0.3.0</Version>
     <Authors>HoneyDrunk Studios</Authors>
     <Description>Resend HTTP API email provider for HoneyDrunk.Notify. Delivers email notifications via the Resend transactional email service.</Description>
     <PackageTags>notify;provider;email;resend;notifications;grid</PackageTags>
@@ -33,11 +33,11 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="HoneyDrunk.Vault" Version="0.3.0" />
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.6" />
-    <PackageReference Include="Microsoft.Extensions.Http" Version="10.0.6" />
-    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.6" />
-    <PackageReference Include="Microsoft.Extensions.Options" Version="10.0.6" />
+    <PackageReference Include="HoneyDrunk.Vault" Version="0.5.0" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.7" />
+    <PackageReference Include="Microsoft.Extensions.Http" Version="10.0.7" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.7" />
+    <PackageReference Include="Microsoft.Extensions.Options" Version="10.0.7" />
     <PackageReference Include="Resend" Version="0.4.0" />
   </ItemGroup>
 
@@ -48,6 +48,10 @@
 
   <ItemGroup>
     <PackageReference Update="Microsoft.CodeAnalysis.NetAnalyzers" Version="10.0.202" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="..\HoneyDrunk.Notify.ProviderSupport\SecretStoreExtensions.cs" Link="ProviderSupport\SecretStoreExtensions.cs" />
+    <Compile Include="..\HoneyDrunk.Notify.ProviderSupport\ServiceCollectionRegistrationExtensions.cs" Link="ProviderSupport\ServiceCollectionRegistrationExtensions.cs" />
   </ItemGroup>
 
 </Project>

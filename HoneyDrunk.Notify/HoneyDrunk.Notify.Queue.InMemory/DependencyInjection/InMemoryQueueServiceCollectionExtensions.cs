@@ -1,6 +1,6 @@
+using HoneyDrunk.Notify.ProviderSupport;
 using HoneyDrunk.Notify.Queue.Abstractions;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace HoneyDrunk.Notify.Queue.InMemory.DependencyInjection;
 
@@ -21,14 +21,7 @@ public static class InMemoryQueueServiceCollectionExtensions
     {
         ArgumentNullException.ThrowIfNull(services);
 
-        var optionsBuilder = services.AddOptions<NotificationQueueOptions>();
-        if (configure is not null)
-            optionsBuilder.Configure(configure);
-
-        services.TryAddSingleton<InMemoryNotificationQueue>();
-        services.TryAddSingleton<INotificationQueue>(sp => sp.GetRequiredService<InMemoryNotificationQueue>());
-        services.TryAddSingleton<IDeadLetterInspector>(sp => sp.GetRequiredService<InMemoryNotificationQueue>());
-
-        return services;
+        services.ConfigureOptional(configure);
+        return services.TryAddNotificationQueue<InMemoryNotificationQueue>();
     }
 }

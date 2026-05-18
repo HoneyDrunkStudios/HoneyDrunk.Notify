@@ -1,6 +1,6 @@
 using HoneyDrunk.Notify.Abstractions;
+using HoneyDrunk.Notify.ProviderSupport;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace HoneyDrunk.Notify.Providers.Email.Resend.DependencyInjection;
 
@@ -41,15 +41,8 @@ public static class ResendNotifyServiceCollectionExtensions
         ArgumentNullException.ThrowIfNull(services);
         ArgumentNullException.ThrowIfNull(configure);
 
-        services.AddOptions<ResendOptions>().Configure(configure);
-
+        services.ConfigureOptional(configure);
         services.AddHttpClient("HoneyDrunk.Notify.Resend");
-
-        services.TryAddSingleton<ResendNotificationSender>();
-        services.TryAddKeyedSingleton<INotificationSender>(
-            NotificationChannel.Email,
-            (sp, _) => sp.GetRequiredService<ResendNotificationSender>());
-
-        return services;
+        return services.TryAddNotificationSender<ResendNotificationSender>(NotificationChannel.Email);
     }
 }

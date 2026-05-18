@@ -1,6 +1,6 @@
 using HoneyDrunk.Notify.Abstractions;
+using HoneyDrunk.Notify.ProviderSupport;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace HoneyDrunk.Notify.Providers.Email.Smtp.DependencyInjection;
 
@@ -26,22 +26,11 @@ public static class SmtpNotifyServiceCollectionExtensions
     {
         ArgumentNullException.ThrowIfNull(services);
 
-        var optionsBuilder = services.AddOptions<SmtpOptions>();
+        services.ConfigureOptional(configure);
 
-        if (configure is not null)
-        {
-            optionsBuilder.Configure(configure);
-        }
-
-        services.TryAddSingleton<SmtpNotificationSender>();
-        services.TryAddKeyedSingleton<INotificationSender>(
+        // Backward compat: also register SMTP as the non-keyed fallback.
+        return services.TryAddNotificationSender<SmtpNotificationSender>(
             NotificationChannel.Email,
-            (sp, _) => sp.GetRequiredService<SmtpNotificationSender>());
-
-        // Backward compat: also register as the non-keyed fallback
-        services.TryAddSingleton<INotificationSender>(
-            sp => sp.GetRequiredService<SmtpNotificationSender>());
-
-        return services;
+            registerFallback: true);
     }
 }

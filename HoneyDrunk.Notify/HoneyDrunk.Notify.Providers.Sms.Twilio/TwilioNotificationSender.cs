@@ -1,7 +1,7 @@
 using HoneyDrunk.Notify.Abstractions;
 using HoneyDrunk.Notify.Abstractions.Models.Sms;
+using HoneyDrunk.Notify.ProviderSupport;
 using HoneyDrunk.Vault.Abstractions;
-using HoneyDrunk.Vault.Models;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Twilio.Clients;
@@ -63,8 +63,8 @@ internal sealed partial class TwilioNotificationSender(
 
         try
         {
-            var accountSid = await GetSecretValueAsync(AccountSidSecretName, cancellationToken);
-            var authToken = await GetSecretValueAsync(AuthTokenSecretName, cancellationToken);
+            var accountSid = await secretStore.GetRequiredSecretValueAsync(AccountSidSecretName, cancellationToken);
+            var authToken = await secretStore.GetRequiredSecretValueAsync(AuthTokenSecretName, cancellationToken);
             var client = new TwilioRestClient(accountSid, authToken);
 
             var message = await MessageResource.CreateAsync(
@@ -143,10 +143,4 @@ internal sealed partial class TwilioNotificationSender(
         Exception exception,
         NotificationId notificationId,
         string to);
-
-    private async Task<string> GetSecretValueAsync(string secretName, CancellationToken cancellationToken)
-    {
-        var secret = await secretStore.GetSecretAsync(new SecretIdentifier(secretName), cancellationToken);
-        return secret.Value;
-    }
 }

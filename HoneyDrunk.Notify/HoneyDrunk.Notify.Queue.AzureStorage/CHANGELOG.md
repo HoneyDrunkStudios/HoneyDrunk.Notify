@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Resolves hosted queue connection strings through Vault-backed `ISecretStore`; direct connection strings remain for local tooling only.
+- Consolidated queue DI registration through shared Notify provider support.
+- Aligned package version to `0.3.0` and Vault dependency to `0.5.0`.
+
 ## [0.2.0] - 2026-05-05
 
 ### Changed

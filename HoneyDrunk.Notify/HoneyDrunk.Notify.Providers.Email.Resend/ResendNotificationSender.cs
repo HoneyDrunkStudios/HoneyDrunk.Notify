@@ -1,8 +1,8 @@
 using global::Resend;
 using HoneyDrunk.Notify.Abstractions;
 using HoneyDrunk.Notify.Abstractions.Models.Email;
+using HoneyDrunk.Notify.ProviderSupport;
 using HoneyDrunk.Vault.Abstractions;
-using HoneyDrunk.Vault.Models;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -64,7 +64,7 @@ internal sealed partial class ResendNotificationSender(
 
         try
         {
-            var apiKey = await GetSecretValueAsync(ApiKeySecretName, cancellationToken);
+            var apiKey = await secretStore.GetRequiredSecretValueAsync(ApiKeySecretName, cancellationToken);
             var resendClient = CreateResendClient(apiKey);
             var message = new EmailMessage
             {
@@ -178,12 +178,6 @@ internal sealed partial class ResendNotificationSender(
         Exception exception,
         NotificationId notificationId,
         string to);
-
-    private async Task<string> GetSecretValueAsync(string secretName, CancellationToken cancellationToken)
-    {
-        var secret = await secretStore.GetSecretAsync(new SecretIdentifier(secretName), cancellationToken);
-        return secret.Value;
-    }
 
     private ResendClient CreateResendClient(string apiKey)
     {

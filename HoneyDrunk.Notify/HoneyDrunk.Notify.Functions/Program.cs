@@ -1,6 +1,7 @@
 using HoneyDrunk.Kernel.Abstractions;
 using HoneyDrunk.Kernel.Abstractions.Identity;
 using HoneyDrunk.Kernel.Hosting;
+using HoneyDrunk.Notify.HostBootstrap;
 using HoneyDrunk.Notify.Hosting.AspNetCore.Options;
 using HoneyDrunk.Notify.Hosting.AspNetCore.ServiceCollectionExtensions;
 using HoneyDrunk.Notify.Providers.Email.Resend;
@@ -18,15 +19,13 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using GridEnvironments = HoneyDrunk.Kernel.Abstractions.Environments;
 
-const string NotifyNodeId = "honeydrunk-notify";
-
 var builder = FunctionsApplication.CreateBuilder(args);
-builder.Configuration["HONEYDRUNK_NODE_ID"] = NotifyNodeId;
+var notifyNodeId = NotifyNodeIdentity.ResolveNodeId(builder.Configuration);
 
 builder.Services
     .AddHoneyDrunkNode(options =>
     {
-        options.NodeId = new NodeId(NotifyNodeId);
+        options.NodeId = notifyNodeId;
         options.SectorId = Sectors.Ops;
         options.EnvironmentId = ResolveEnvironment(builder.Configuration);
         options.Version = typeof(Program).Assembly.GetName().Version?.ToString() ?? "0.1.0";
