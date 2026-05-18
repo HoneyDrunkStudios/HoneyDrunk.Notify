@@ -240,6 +240,12 @@ internal sealed partial class AzureStorageNotificationQueue : INotificationQueue
             new SecretIdentifier(_options.ConnectionStringSecretName),
             cancellationToken);
 
+        if (string.IsNullOrWhiteSpace(secret.Value))
+        {
+            throw new InvalidOperationException(
+                $"Azure Storage Queue connection string secret '{_options.ConnectionStringSecretName}' resolved to an empty value.");
+        }
+
         return secret.Value;
     }
 

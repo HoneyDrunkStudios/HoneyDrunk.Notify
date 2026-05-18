@@ -42,7 +42,6 @@ builder.Services.Configure<SmtpOptions>(builder.Configuration.GetSection("Smtp")
 builder.Services.Configure<AzureStorageQueueOptions>(options =>
 {
     builder.Configuration.GetSection("NotifyQueue").Bind(options);
-    options.ConnectionStringSettingName = "NotifyQueueConnection";
 });
 
 builder.Services.AddHoneyDrunkNotifyWorker(ConfigureWorkerOptions);

@@ -59,6 +59,22 @@ public sealed class AzureStorageNotificationQueueTests
             .WithMessage("*ISecretStore*");
     }
 
+    /// <summary>
+    /// Verifies hosted queue credentials fail closed when Vault returns an empty value.
+    /// </summary>
+    /// <returns>A <see cref="Task" /> representing the asynchronous test.</returns>
+    [Fact]
+    public async Task ResolveConnectionStringAsync_RejectsEmptyVaultSecretValue()
+    {
+        var secretStore = new FakeSecretStore("NotifyQueueConnection", " ");
+        await using var queue = CreateQueue(new AzureStorageQueueOptions(), secretStore);
+
+        var act = () => queue.ResolveConnectionStringAsync(CancellationToken.None);
+
+        await act.Should().ThrowAsync<InvalidOperationException>()
+            .WithMessage("*empty value*");
+    }
+
     private static AzureStorageNotificationQueue CreateQueue(
         AzureStorageQueueOptions options,
         ISecretStore? secretStore = null) =>

@@ -56,6 +56,23 @@ public sealed class NotifyNodeIdentityTests
         nodeId.Value.Should().Be("grid-notify");
     }
 
+    /// <summary>
+    /// Verifies an empty environment override does not mask Grid:NodeId.
+    /// </summary>
+    [Fact]
+    public void ResolveNodeId_UsesGridNodeIdWhenEnvOverrideIsWhitespace()
+    {
+        var configuration = BuildConfiguration(new Dictionary<string, string?>
+        {
+            ["HONEYDRUNK_NODE_ID"] = " ",
+            ["Grid:NodeId"] = "grid-notify",
+        });
+
+        var nodeId = NotifyNodeIdentity.ResolveNodeId(configuration);
+
+        nodeId.Value.Should().Be("grid-notify");
+    }
+
     private static IConfiguration BuildConfiguration(IEnumerable<KeyValuePair<string, string?>> values) =>
         new ConfigurationBuilder()
             .AddInMemoryCollection(values)

@@ -50,6 +50,7 @@
     <PackageReference Update="Microsoft.CodeAnalysis.NetAnalyzers" Version="10.0.202" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="..\HoneyDrunk.Notify.ProviderSupport\OptionsRegistrationExtensions.cs" Link="ProviderSupport\OptionsRegistrationExtensions.cs" />
     <Compile Include="..\HoneyDrunk.Notify.ProviderSupport\QueueServiceCollectionRegistrationExtensions.cs" Link="ProviderSupport\QueueServiceCollectionRegistrationExtensions.cs" />
   </ItemGroup>
 

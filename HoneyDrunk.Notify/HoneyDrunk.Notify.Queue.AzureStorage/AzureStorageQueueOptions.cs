@@ -23,11 +23,6 @@ public sealed class AzureStorageQueueOptions : NotificationQueueOptions
     public string ConnectionStringSecretName { get; set; } = "NotifyQueueConnection";
 
     /// <summary>
-    /// Gets or sets the Functions/App Configuration setting name that supplies the queue binding connection.
-    /// </summary>
-    public string ConnectionStringSettingName { get; set; } = "NotifyQueueConnection";
-
-    /// <summary>
     /// Gets or sets a value indicating whether to create the queue if it does not exist on first use.
     /// </summary>
     public bool CreateIfNotExists { get; set; } = true;

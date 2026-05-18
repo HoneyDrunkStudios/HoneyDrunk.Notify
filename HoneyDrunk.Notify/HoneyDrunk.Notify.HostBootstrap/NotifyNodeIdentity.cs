@@ -17,9 +17,12 @@ internal static class NotifyNodeIdentity
     {
         ArgumentNullException.ThrowIfNull(configuration);
 
-        var configuredNodeId =
-            configuration["HONEYDRUNK_NODE_ID"]
-            ?? configuration["Grid:NodeId"];
+        var configuredNodeId = new[]
+            {
+                configuration["HONEYDRUNK_NODE_ID"],
+                configuration["Grid:NodeId"],
+            }
+            .FirstOrDefault(value => !string.IsNullOrWhiteSpace(value));
 
         return string.IsNullOrWhiteSpace(configuredNodeId)
             ? WellKnownNodes.Ops.Notify
