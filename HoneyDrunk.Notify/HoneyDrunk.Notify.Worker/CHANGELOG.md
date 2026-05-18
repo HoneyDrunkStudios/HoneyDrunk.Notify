@@ -7,13 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-05-18
+
 ### Changed
 
 - Uses Kernel canonical Notify identity fallback while preserving deploy-time node overrides.
 - Configures Azure Storage Queue secret name for Vault-backed connection resolution instead of reading queue secrets directly from host configuration.
 - Aligned Kernel/Vault dependencies for the ADR-0005/ADR-0006 bootstrap boundary.
-
-## [0.3.0] - 2026-05-17
 
 ### Added
 
