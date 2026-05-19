@@ -482,6 +482,109 @@ public sealed class CoverageGateBackfillTests
     }
 
     /// <summary>
+    /// Verifies the in-memory queue covers delivery, dead-letter, replay, and purge paths.
+    /// </summary>
+    /// <returns>A task representing the asynchronous test operation.</returns>
+    [Fact]
+    public async Task InMemoryQueue_TracksDeliveryAndDeadLetterLifecycle()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddHoneyDrunkNotifyInMemoryQueue(options => options.MaxBatchSize = 2);
+        using var provider = services.BuildServiceProvider();
+        var queue = provider.GetRequiredService<INotificationQueue>();
+        var inspector = provider.GetRequiredService<IDeadLetterInspector>();
+        var first = Envelope(NotificationChannel.Email, "first@example.test");
+        var second = Envelope(NotificationChannel.Email, "second@example.test");
+        var third = Envelope(NotificationChannel.Email, "third@example.test");
+
+        // Act
+        await queue.EnqueueAsync(first);
+        await queue.EnqueueAsync(second);
+        await queue.EnqueueAsync(third);
+        var firstBatch = await queue.DequeueBatchAsync(10);
+        await queue.CompleteAsync(firstBatch[0]);
+        await queue.AbandonAsync(firstBatch[1]);
+        var secondBatch = await queue.DequeueBatchAsync(10);
+        var replayTarget = secondBatch.Single(item => item.Envelope.NotificationId == second.NotificationId);
+        await queue.DeadLetterAsync(replayTarget, "provider failed");
+        var listed = await inspector.ListAsync(10);
+        var found = await inspector.FindByNotificationIdAsync(second.NotificationId.ToString());
+        var missing = await inspector.FindByNotificationIdAsync("missing");
+        var replayed = await inspector.ReplayAsync(second.NotificationId.ToString());
+        var replayedAgain = await inspector.ReplayAsync(second.NotificationId.ToString());
+        var afterReplay = await queue.DequeueBatchAsync(10);
+        await queue.DeadLetterAsync(afterReplay.Single(item => item.Envelope.NotificationId == second.NotificationId), "still failed");
+        var purged = await inspector.PurgeAsync(second.NotificationId.ToString());
+        var purgedAgain = await inspector.PurgeAsync(second.NotificationId.ToString());
+        Func<Task> nullEnvelope = () => queue.EnqueueAsync(null!);
+        Func<Task> nullComplete = () => queue.CompleteAsync(null!);
+        Func<Task> nullAbandon = () => queue.AbandonAsync(null!);
+        Func<Task> nullDeadLetter = () => queue.DeadLetterAsync(null!, "failed");
+        Func<Task> blankReason = () => queue.DeadLetterAsync(firstBatch[0], " ");
+
+        // Assert
+        firstBatch.Should().HaveCount(2);
+        secondBatch.Should().HaveCount(2);
+        listed.Should().ContainSingle(entry => entry.NotificationId == second.NotificationId.ToString());
+        found.Should().NotBeNull();
+        found!.Reason.Should().Be("provider failed");
+        found.Channel.Should().Be(NotificationChannel.Email.ToString());
+        found.TemplateKey.Should().Be("welcome");
+        found.CorrelationId.Should().Be("corr-1");
+        found.TenantId.Should().Be("tenant-1");
+        found.DeadLetteredAt.Should().NotBeNull();
+        missing.Should().BeNull();
+        replayed.Should().BeTrue();
+        replayedAgain.Should().BeFalse();
+        afterReplay.Should().Contain(item => item.Envelope.NotificationId == second.NotificationId);
+        purged.Should().BeTrue();
+        purgedAgain.Should().BeFalse();
+        await nullEnvelope.Should().ThrowAsync<ArgumentNullException>();
+        await nullComplete.Should().ThrowAsync<ArgumentNullException>();
+        await nullAbandon.Should().ThrowAsync<ArgumentNullException>();
+        await nullDeadLetter.Should().ThrowAsync<ArgumentNullException>();
+        await blankReason.Should().ThrowAsync<ArgumentException>();
+    }
+
+    /// <summary>
+    /// Verifies the sender resolver uses keyed, fallback, and missing-registration paths.
+    /// </summary>
+    [Fact]
+    public void NotificationSenderResolver_UsesKeyedFallbackAndMissingPaths()
+    {
+        // Arrange
+        var emailPayload = new EmailEnvelope("person@example.test", new EmailContent("Subject", "Body"))
+        {
+            From = "sender@example.test",
+            FromDisplayName = "HoneyDrunk",
+            Headers = new Dictionary<string, string> { ["X-Test"] = "true" },
+        };
+        var keyedSender = new SequenceSender(Success(Envelope(NotificationChannel.Email, "keyed@example.test")));
+        var fallbackSender = new SequenceSender(Success(Envelope(NotificationChannel.Sms, "fallback@example.test")));
+        var keyedServices = new ServiceCollection();
+        keyedServices.AddKeyedSingleton<INotificationSender>(NotificationChannel.Email, keyedSender);
+        using var keyedProvider = keyedServices.BuildServiceProvider();
+        var fallbackServices = new ServiceCollection();
+        fallbackServices.AddSingleton<INotificationSender>(fallbackSender);
+        using var fallbackProvider = fallbackServices.BuildServiceProvider();
+        using var emptyProvider = new ServiceCollection().BuildServiceProvider();
+
+        // Act
+        var keyed = new NotificationSenderResolver(keyedProvider).Resolve(NotificationChannel.Email);
+        var fallback = new NotificationSenderResolver(fallbackProvider).Resolve(NotificationChannel.Sms);
+        Action missing = () => new NotificationSenderResolver(emptyProvider).Resolve((NotificationChannel)42);
+
+        // Assert
+        emailPayload.From.Should().Be("sender@example.test");
+        emailPayload.FromDisplayName.Should().Be("HoneyDrunk");
+        emailPayload.Headers.Should().ContainKey("X-Test");
+        keyed.Should().BeSameAs(keyedSender);
+        fallback.Should().BeSameAs(fallbackSender);
+        missing.Should().Throw<InvalidOperationException>().WithMessage("*42*");
+    }
+
+    /// <summary>
     /// Verifies provider and queue options expose default values and retain configured values.
     /// </summary>
     [Fact]
