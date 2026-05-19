@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RunSettings>
+  <DataCollectionRunSettings>
+    <DataCollectors>
+      <DataCollector friendlyName="XPlat Code Coverage">
+        <Configuration>
+          <Format>cobertura</Format>
+          <Include>[HoneyDrunk.Notify*]*</Include>
+          <Exclude>[HoneyDrunk.Notify.Tests]*,[HoneyDrunk.Notify.IntegrationTests]*</Exclude>
+          <ExcludeByFile>**/obj/**/*.cs,**/bin/**/*.cs,**/Program.cs,**/AzureStorageNotificationQueue.cs,**/NotifyDispatcherBackgroundService.cs,**/NoOpNotificationSender.cs,**/ResendNotificationSender.cs,**/SmtpNotificationSender.cs,**/TwilioNotificationSender.cs,**/DefaultNotifyHealthContributor.cs,**/NotifyHealthEndpointsExtensions.cs,**/NotifyNodeIdentity.cs,**/SecretStoreExtensions.cs</ExcludeByFile>
+          <IncludeTestAssembly>false</IncludeTestAssembly>
+        </Configuration>
+      </DataCollector>
+    </DataCollectors>
+  </DataCollectionRunSettings>
+</RunSettings>

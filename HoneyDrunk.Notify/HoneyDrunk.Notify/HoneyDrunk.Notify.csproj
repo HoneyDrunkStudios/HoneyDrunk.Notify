@@ -26,6 +26,7 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="HoneyDrunk.Notify.Tests" />
+    <InternalsVisibleTo Include="HoneyDrunk.Notify.IntegrationTests" />
   </ItemGroup>
 
   <ItemGroup>

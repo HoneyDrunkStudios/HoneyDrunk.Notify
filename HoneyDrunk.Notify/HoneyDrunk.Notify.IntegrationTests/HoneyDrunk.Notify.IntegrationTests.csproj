@@ -8,9 +8,16 @@
     <IsPackable>false</IsPackable>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <RunSettingsFilePath>../coverlet.runsettings</RunSettingsFilePath>
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\HoneyDrunk.Notify\HoneyDrunk.Notify.csproj" />
+    <ProjectReference Include="..\HoneyDrunk.Notify.Hosting.AspNetCore\HoneyDrunk.Notify.Hosting.AspNetCore.csproj" />
+    <ProjectReference Include="..\HoneyDrunk.Notify.Providers.Email.Resend\HoneyDrunk.Notify.Providers.Email.Resend.csproj" />
+    <ProjectReference Include="..\HoneyDrunk.Notify.Providers.Email.Smtp\HoneyDrunk.Notify.Providers.Email.Smtp.csproj" />
+    <ProjectReference Include="..\HoneyDrunk.Notify.Providers.Sms.Twilio\HoneyDrunk.Notify.Providers.Sms.Twilio.csproj" />
+    <ProjectReference Include="..\HoneyDrunk.Notify.Queue.AzureStorage\HoneyDrunk.Notify.Queue.AzureStorage.csproj" />
     <ProjectReference Include="..\HoneyDrunk.Notify.Worker\HoneyDrunk.Notify.Worker.csproj" />
     <ProjectReference Include="..\HoneyDrunk.Notify.Queue.InMemory\HoneyDrunk.Notify.Queue.InMemory.csproj" />
     <ProjectReference Include="..\HoneyDrunk.Notify.Queue.Abstractions\HoneyDrunk.Notify.Queue.Abstractions.csproj" />
@@ -22,6 +29,7 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
     <PackageReference Include="FluentAssertions" Version="8.9.0" />
+    <PackageReference Include="HoneyDrunk.Vault" Version="0.5.0" />
     <PackageReference Include="HoneyDrunk.Standards" Version="0.2.7">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
@@ -40,6 +48,10 @@
 
   <ItemGroup>
     <PackageReference Update="Microsoft.CodeAnalysis.NetAnalyzers" Version="10.0.202" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="..\HoneyDrunk.Notify.Tests\Telemetry\CoverageGateBackfillTests.cs" Link="Telemetry\CoverageGateBackfillTests.cs" />
   </ItemGroup>
 
 </Project>
