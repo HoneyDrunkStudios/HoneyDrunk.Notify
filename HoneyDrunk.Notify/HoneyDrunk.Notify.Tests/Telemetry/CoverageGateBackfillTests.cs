@@ -477,7 +477,7 @@ public sealed class CoverageGateBackfillTests
         // Assert
         queue.Completed.Should().ContainSingle(item => item.Envelope.NotificationId == completed.NotificationId);
         queue.Abandoned.Should().ContainSingle(item => item.Envelope.NotificationId == abandoned.NotificationId);
-        queue.DeadLettered.Should().ContainSingle(item => item.item.Envelope.NotificationId == deadLettered.NotificationId);
+        queue.DeadLettered.Should().ContainSingle(entry => entry.queuedNotification.Envelope.NotificationId == deadLettered.NotificationId);
         queue.Completed.Should().Contain(item => item.Envelope.NotificationId == permanent.NotificationId);
     }
 
@@ -749,7 +749,7 @@ public sealed class CoverageGateBackfillTests
 
         public List<QueuedNotification> Abandoned { get; } = [];
 
-        public List<(QueuedNotification item, string reason)> DeadLettered { get; } = [];
+        public List<(QueuedNotification queuedNotification, string reason)> DeadLettered { get; } = [];
 
         public Task EnqueueAsync(NotificationEnvelope envelope, CancellationToken ct = default) => Task.CompletedTask;
 
