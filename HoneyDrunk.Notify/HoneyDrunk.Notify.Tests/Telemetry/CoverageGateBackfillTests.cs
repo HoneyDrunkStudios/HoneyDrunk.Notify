@@ -7,6 +7,9 @@ using HoneyDrunk.Notify.Abstractions;
 using HoneyDrunk.Notify.Abstractions.Models.Email;
 using HoneyDrunk.Notify.Abstractions.Models.Sms;
 using HoneyDrunk.Notify.DependencyInjection;
+using HoneyDrunk.Notify.HostBootstrap;
+using HoneyDrunk.Notify.Hosting.AspNetCore.Health;
+using HoneyDrunk.Notify.Hosting.AspNetCore.Options;
 using HoneyDrunk.Notify.Hosting.AspNetCore.ServiceCollectionExtensions;
 using HoneyDrunk.Notify.Intake;
 using HoneyDrunk.Notify.Options;
@@ -19,9 +22,11 @@ using HoneyDrunk.Notify.Queue.InMemory.DependencyInjection;
 using HoneyDrunk.Notify.Routing;
 using HoneyDrunk.Notify.Storage;
 using HoneyDrunk.Notify.Worker.Composition;
+using HoneyDrunk.Notify.Worker.Hosting;
 using HoneyDrunk.Notify.Worker.Options;
 using HoneyDrunk.Vault.Abstractions;
 using HoneyDrunk.Vault.Models;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
@@ -284,7 +289,6 @@ public sealed class CoverageGateBackfillTests
         services.AddSingleton<ISecretStore>(new FakeSecretStore());
         services.AddHoneyDrunkNotifyRuntime();
         services.AddHoneyDrunkNotifySmtpProvider(options => options.FromAddress = "smtp@example.test");
-        services.AddHoneyDrunkNotifyResendProvider(options => options.FromAddress = "resend@example.test");
         services.AddHoneyDrunkNotifyTwilioProvider(options => options.FromNumber = "+15551234567");
         using var provider = services.BuildServiceProvider();
         var emailEnvelope = Envelope(NotificationChannel.Email, "person@example.test") with { Payload = new SmsEnvelope("+15550000000", "wrong") };
@@ -355,9 +359,12 @@ public sealed class CoverageGateBackfillTests
     public async Task ProviderSenders_RejectMissingSenderConfigurationBeforeExternalCalls()
     {
         // Arrange
-        var smtpSender = BuildSender(services => services.AddHoneyDrunkNotifySmtpProvider());
-        var resendSender = BuildSender(services => services.AddHoneyDrunkNotifyResendProvider(_ => { }));
-        var twilioSender = BuildSender(services => services.AddHoneyDrunkNotifyTwilioProvider(_ => { }), NotificationChannel.Sms);
+        using var smtpProvider = BuildProvider(services => services.AddHoneyDrunkNotifySmtpProvider());
+        using var resendProvider = BuildProvider(services => services.AddHoneyDrunkNotifyResendProvider(_ => { }));
+        using var twilioProvider = BuildProvider(services => services.AddHoneyDrunkNotifyTwilioProvider(_ => { }));
+        var smtpSender = smtpProvider.GetRequiredKeyedService<INotificationSender>(NotificationChannel.Email);
+        var resendSender = resendProvider.GetRequiredKeyedService<INotificationSender>(NotificationChannel.Email);
+        var twilioSender = twilioProvider.GetRequiredKeyedService<INotificationSender>(NotificationChannel.Sms);
         var email = Envelope(NotificationChannel.Email, "person@example.test") with
         {
             Payload = new EmailEnvelope("person@example.test", new EmailContent("Subject", "Body")),
@@ -382,6 +389,96 @@ public sealed class CoverageGateBackfillTests
         twilio.Provider.Should().Be("twilio");
         twilio.Status.Should().Be(DeliveryStatus.Failed);
         twilio.ErrorMessage.Should().Contain("No sender phone number configured");
+    }
+
+    /// <summary>
+    /// Verifies host health, node identity, and fallback sender paths stay covered as runtime code.
+    /// </summary>
+    /// <returns>A task representing the asynchronous test operation.</returns>
+    [Fact]
+    public async Task HostRuntimeHelpers_ReportHealthIdentityAndNoOpFailures()
+    {
+        // Arrange
+        var enabledContributor = new DefaultNotifyHealthContributor(
+            Microsoft.Extensions.Options.Options.Create(new NotifyOptions { Enabled = true }));
+        var disabledContributor = new DefaultNotifyHealthContributor(
+            Microsoft.Extensions.Options.Options.Create(new NotifyOptions { Enabled = false }));
+        var configuredNode = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?> { ["Grid:NodeId"] = "notify-custom" })
+            .Build();
+        var environmentNode = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?> { ["HONEYDRUNK_NODE_ID"] = "notify-env", ["Grid:NodeId"] = "notify-grid" })
+            .Build();
+        var fallbackNode = new ConfigurationBuilder().Build();
+        var sender = new NoOpNotificationSender(NullLogger<NoOpNotificationSender>.Instance);
+        var envelope = Envelope(NotificationChannel.Email, "person@example.test");
+
+        // Act
+        var healthy = await enabledContributor.CheckAsync();
+        var unhealthy = await disabledContributor.CheckAsync();
+        var configured = NotifyNodeIdentity.ResolveNodeId(configuredNode);
+        var environment = NotifyNodeIdentity.ResolveNodeId(environmentNode);
+        var fallback = NotifyNodeIdentity.ResolveNodeId(fallbackNode);
+        var outcome = await sender.SendAsync(envelope);
+        Func<Task> nullEnvelope = () => sender.SendAsync(null!);
+
+        // Assert
+        healthy.Status.Should().Be(NotifyHealthStatus.Healthy);
+        unhealthy.Status.Should().Be(NotifyHealthStatus.Unhealthy);
+        configured.Value.Should().Be("notify-custom");
+        environment.Value.Should().Be("notify-env");
+        fallback.Value.Should().Be("honeydrunk-notify");
+        outcome.NotificationId.Should().Be(envelope.NotificationId);
+        outcome.Provider.Should().Be("noop");
+        outcome.Status.Should().Be(DeliveryStatus.Failed);
+        outcome.FailureKind.Should().Be(FailureKind.Permanent);
+        await nullEnvelope.Should().ThrowAsync<ArgumentNullException>();
+    }
+
+    /// <summary>
+    /// Verifies the worker dispatcher completes, abandons, and dead-letters queue items by outcome.
+    /// </summary>
+    /// <returns>A task representing the asynchronous test operation.</returns>
+    [Fact]
+    public async Task WorkerDispatcher_ProcessesQueueItemsByDeliveryOutcome()
+    {
+        // Arrange
+        var completed = Envelope(NotificationChannel.Email, "completed@example.test");
+        var abandoned = Envelope(NotificationChannel.Email, "abandoned@example.test");
+        var deadLettered = Envelope(NotificationChannel.Email, "deadletter@example.test");
+        var permanent = Envelope(NotificationChannel.Email, "permanent@example.test");
+        var queue = new RecordingNotificationQueue(
+            new QueuedNotification(completed, "complete", DateTimeOffset.UtcNow),
+            new QueuedNotification(abandoned, "abandon", DateTimeOffset.UtcNow),
+            new QueuedNotification(deadLettered, "deadletter", DateTimeOffset.UtcNow, 5),
+            new QueuedNotification(permanent, "permanent", DateTimeOffset.UtcNow));
+        var sender = new SequenceSender(
+            Success(completed),
+            Transient(abandoned),
+            Transient(deadLettered),
+            Permanent(permanent));
+        using var service = new NotifyDispatcherBackgroundService(
+            queue,
+            Dispatcher(sender, maxAttempts: 1),
+            Microsoft.Extensions.Options.Options.Create(new NotifyWorkerOptions
+            {
+                Enabled = true,
+                BatchSize = 10,
+                PollInterval = TimeSpan.FromMinutes(5),
+            }),
+            Microsoft.Extensions.Options.Options.Create(new NotificationQueueOptions { MaxDeliveryAttempts = 5 }),
+            NullLogger<NotifyDispatcherBackgroundService>.Instance);
+
+        // Act
+        await service.StartAsync(CancellationToken.None);
+        await queue.Processed.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        await service.StopAsync(CancellationToken.None);
+
+        // Assert
+        queue.Completed.Should().ContainSingle(item => item.Envelope.NotificationId == completed.NotificationId);
+        queue.Abandoned.Should().ContainSingle(item => item.Envelope.NotificationId == abandoned.NotificationId);
+        queue.DeadLettered.Should().ContainSingle(item => item.item.Envelope.NotificationId == deadLettered.NotificationId);
+        queue.Completed.Should().Contain(item => item.Envelope.NotificationId == permanent.NotificationId);
     }
 
     /// <summary>
@@ -466,16 +563,14 @@ public sealed class CoverageGateBackfillTests
         provider.GetRequiredService<IDeadLetterInspector>().Should().NotBeNull();
     }
 
-    private static INotificationSender BuildSender(
-        Action<IServiceCollection> register,
-        NotificationChannel channel = NotificationChannel.Email)
+    private static ServiceProvider BuildProvider(Action<IServiceCollection> register)
     {
         var services = new ServiceCollection();
         services.AddLogging();
         services.AddSingleton<ISecretStore>(new FakeSecretStore());
         services.AddHoneyDrunkNotifyRuntime();
         register(services);
-        return services.BuildServiceProvider().GetRequiredKeyedService<INotificationSender>(channel);
+        return services.BuildServiceProvider();
     }
 
     private static NotificationDispatcher Dispatcher(SequenceSender sender, int maxAttempts) =>
@@ -506,6 +601,27 @@ public sealed class CoverageGateBackfillTests
             CreatedAtUtc = DateTimeOffset.UtcNow,
         };
 
+    private static DeliveryOutcome Success(NotificationEnvelope envelope) =>
+        DeliveryOutcome.Succeeded(envelope.NotificationId, AttemptId.NewId(), envelope.Channel, "test");
+
+    private static DeliveryOutcome Transient(NotificationEnvelope envelope) =>
+        DeliveryOutcome.Failed(
+            envelope.NotificationId,
+            AttemptId.NewId(),
+            envelope.Channel,
+            "test",
+            FailureKind.Transient,
+            "retry later");
+
+    private static DeliveryOutcome Permanent(NotificationEnvelope envelope) =>
+        DeliveryOutcome.Failed(
+            envelope.NotificationId,
+            AttemptId.NewId(),
+            envelope.Channel,
+            "test",
+            FailureKind.Permanent,
+            "do not retry");
+
     private sealed class StubEmailRenderer : IEmailTemplateRenderer
     {
         public Task<EmailContent> RenderEmailAsync(
@@ -518,6 +634,57 @@ public sealed class CoverageGateBackfillTests
     private sealed class StubResolver(INotificationSender sender) : INotificationSenderResolver
     {
         public INotificationSender Resolve(NotificationChannel channel) => sender;
+    }
+
+    private sealed class RecordingNotificationQueue(params QueuedNotification[] batch) : INotificationQueue
+    {
+        private bool _dequeued;
+
+        public TaskCompletionSource Processed { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        public List<QueuedNotification> Completed { get; } = [];
+
+        public List<QueuedNotification> Abandoned { get; } = [];
+
+        public List<(QueuedNotification item, string reason)> DeadLettered { get; } = [];
+
+        public Task EnqueueAsync(NotificationEnvelope envelope, CancellationToken ct = default) => Task.CompletedTask;
+
+        public Task<IReadOnlyList<QueuedNotification>> DequeueBatchAsync(int max, CancellationToken ct = default)
+        {
+            if (_dequeued)
+                return Task.FromResult<IReadOnlyList<QueuedNotification>>([]);
+
+            _dequeued = true;
+            return Task.FromResult<IReadOnlyList<QueuedNotification>>(batch.Take(max).ToArray());
+        }
+
+        public Task CompleteAsync(QueuedNotification item, CancellationToken ct = default)
+        {
+            Completed.Add(item);
+            TrySignalProcessed();
+            return Task.CompletedTask;
+        }
+
+        public Task AbandonAsync(QueuedNotification item, CancellationToken ct = default)
+        {
+            Abandoned.Add(item);
+            TrySignalProcessed();
+            return Task.CompletedTask;
+        }
+
+        public Task DeadLetterAsync(QueuedNotification item, string reason, CancellationToken ct = default)
+        {
+            DeadLettered.Add((item, reason));
+            TrySignalProcessed();
+            return Task.CompletedTask;
+        }
+
+        private void TrySignalProcessed()
+        {
+            if (Completed.Count + Abandoned.Count + DeadLettered.Count >= batch.Length)
+                Processed.TrySetResult();
+        }
     }
 
     private sealed class SequenceSender(params DeliveryOutcome[] outcomes) : INotificationSender

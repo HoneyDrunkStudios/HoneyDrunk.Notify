@@ -47,6 +47,7 @@
 
   <ItemGroup>
     <PackageReference Update="Microsoft.CodeAnalysis.NetAnalyzers" Version="10.0.202" />
+    <InternalsVisibleTo Include="HoneyDrunk.Notify.Tests" />
   </ItemGroup>
 
 </Project>

@@ -50,8 +50,4 @@
     <PackageReference Update="Microsoft.CodeAnalysis.NetAnalyzers" Version="10.0.202" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Compile Include="..\HoneyDrunk.Notify.Tests\Telemetry\CoverageGateBackfillTests.cs" Link="Telemetry\CoverageGateBackfillTests.cs" />
-  </ItemGroup>
-
 </Project>

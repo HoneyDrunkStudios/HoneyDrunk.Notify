@@ -7,7 +7,7 @@
           <Format>cobertura</Format>
           <Include>[HoneyDrunk.Notify*]*</Include>
           <Exclude>[HoneyDrunk.Notify.Tests]*,[HoneyDrunk.Notify.IntegrationTests]*</Exclude>
-          <ExcludeByFile>**/obj/**/*.cs,**/bin/**/*.cs,**/Program.cs,**/AzureStorageNotificationQueue.cs,**/NotifyDispatcherBackgroundService.cs,**/NoOpNotificationSender.cs,**/ResendNotificationSender.cs,**/SmtpNotificationSender.cs,**/TwilioNotificationSender.cs,**/DefaultNotifyHealthContributor.cs,**/NotifyHealthEndpointsExtensions.cs,**/NotifyNodeIdentity.cs,**/SecretStoreExtensions.cs</ExcludeByFile>
+          <ExcludeByFile>**/obj/**/*.cs,**/bin/**/*.cs,**/Program.cs,**/NotifyHealthEndpointsExtensions.cs</ExcludeByFile>
           <IncludeTestAssembly>false</IncludeTestAssembly>
         </Configuration>
       </DataCollector>

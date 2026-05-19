@@ -48,7 +48,6 @@
     <PackageReference Update="Microsoft.CodeAnalysis.NetAnalyzers" Version="10.0.202" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="..\HoneyDrunk.Notify.HostBootstrap\NotifyNodeIdentity.cs" Link="HostBootstrap\NotifyNodeIdentity.cs" />
     <Compile Include="..\HoneyDrunk.Notify.ProviderSupport\SecretStoreExtensions.cs" Link="ProviderSupport\SecretStoreExtensions.cs" />
   </ItemGroup>
 
