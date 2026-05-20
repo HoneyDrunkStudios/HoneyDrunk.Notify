@@ -8,12 +8,17 @@
     <IsPackable>false</IsPackable>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <RunSettingsFilePath>../coverlet.runsettings</RunSettingsFilePath>
   </PropertyGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\HoneyDrunk.Notify\HoneyDrunk.Notify.csproj" />
     <ProjectReference Include="..\HoneyDrunk.Notify.Hosting.AspNetCore\HoneyDrunk.Notify.Hosting.AspNetCore.csproj" />
+    <ProjectReference Include="..\HoneyDrunk.Notify.Providers.Email.Resend\HoneyDrunk.Notify.Providers.Email.Resend.csproj" />
+    <ProjectReference Include="..\HoneyDrunk.Notify.Providers.Email.Smtp\HoneyDrunk.Notify.Providers.Email.Smtp.csproj" />
+    <ProjectReference Include="..\HoneyDrunk.Notify.Providers.Sms.Twilio\HoneyDrunk.Notify.Providers.Sms.Twilio.csproj" />
     <ProjectReference Include="..\HoneyDrunk.Notify.Queue.AzureStorage\HoneyDrunk.Notify.Queue.AzureStorage.csproj" />
+    <ProjectReference Include="..\HoneyDrunk.Notify.Worker\HoneyDrunk.Notify.Worker.csproj" />
   </ItemGroup>
 
   <ItemGroup>
@@ -43,7 +48,6 @@
     <PackageReference Update="Microsoft.CodeAnalysis.NetAnalyzers" Version="10.0.202" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="..\HoneyDrunk.Notify.HostBootstrap\NotifyNodeIdentity.cs" Link="HostBootstrap\NotifyNodeIdentity.cs" />
     <Compile Include="..\HoneyDrunk.Notify.ProviderSupport\SecretStoreExtensions.cs" Link="ProviderSupport\SecretStoreExtensions.cs" />
   </ItemGroup>
 

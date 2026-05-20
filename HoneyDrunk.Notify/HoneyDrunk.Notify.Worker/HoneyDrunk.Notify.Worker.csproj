@@ -39,6 +39,7 @@
     <PackageReference Update="Microsoft.CodeAnalysis.NetAnalyzers" Version="10.0.202" />
   </ItemGroup>
   <ItemGroup>
+    <InternalsVisibleTo Include="HoneyDrunk.Notify.Tests" />
     <Compile Include="..\HoneyDrunk.Notify.HostBootstrap\NotifyNodeIdentity.cs" Link="HostBootstrap\NotifyNodeIdentity.cs" />
   </ItemGroup>
 
