@@ -1,4 +1,4 @@
-using FluentAssertions;
+using AwesomeAssertions;
 using HoneyDrunk.Notify.Abstractions;
 using HoneyDrunk.Notify.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection;
