@@ -1,4 +1,4 @@
-using FluentAssertions;
+using AwesomeAssertions;
 using HoneyDrunk.Notify.Queue.AzureStorage;
 using HoneyDrunk.Vault.Abstractions;
 using HoneyDrunk.Vault.Models;

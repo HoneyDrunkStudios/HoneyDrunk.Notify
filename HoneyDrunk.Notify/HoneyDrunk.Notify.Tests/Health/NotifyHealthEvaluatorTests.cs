@@ -1,4 +1,4 @@
-using FluentAssertions;
+using AwesomeAssertions;
 using HoneyDrunk.Notify.Hosting.AspNetCore.Health;
 
 namespace HoneyDrunk.Notify.Tests.Health;

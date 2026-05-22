@@ -1,4 +1,4 @@
-using FluentAssertions;
+using AwesomeAssertions;
 using HoneyDrunk.Kernel.Abstractions;
 using HoneyDrunk.Notify.HostBootstrap;
 using Microsoft.Extensions.Configuration;

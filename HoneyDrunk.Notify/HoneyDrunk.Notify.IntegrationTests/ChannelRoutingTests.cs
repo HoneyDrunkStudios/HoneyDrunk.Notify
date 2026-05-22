@@ -1,4 +1,4 @@
-using FluentAssertions;
+using AwesomeAssertions;
 using HoneyDrunk.Notify.Abstractions;
 using HoneyDrunk.Notify.Abstractions.Models.Sms;
 using HoneyDrunk.Notify.DependencyInjection;

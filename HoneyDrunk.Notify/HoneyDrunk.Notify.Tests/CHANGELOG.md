@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Migrated test assertions from FluentAssertions to AwesomeAssertions and adopted HoneyDrunk.Standards.Tests 0.2.9 for the ADR-0047 test stack.
+
 ## [0.2.0] - 2026-05-05
 
 ### Changed

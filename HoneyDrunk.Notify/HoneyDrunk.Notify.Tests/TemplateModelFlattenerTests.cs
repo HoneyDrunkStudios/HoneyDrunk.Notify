@@ -1,4 +1,4 @@
-using FluentAssertions;
+using AwesomeAssertions;
 using HoneyDrunk.Notify.Templates;
 
 namespace HoneyDrunk.Notify.Tests;
