@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Enabled ADR-0044 Grid Review request workflow and repo-local OpenClaw/Codex review configuration.
 - Refreshed HoneyDrunk.Standards to 0.2.9 for ADR-0047 testing tooling alignment.
 
 ## [0.3.0] - 2026-05-18
