@@ -13,7 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- Onboarded Notify to SonarQube Cloud (ADR-0011 D11). Added `sonar-project.properties` at the inner project subdir and wired a `sonarcloud` job in `pr.yml` that calls `HoneyDrunk.Actions/.github/workflows/job-sonarcloud.yml` after `pr-core`. Sources cover the full Notify family (runtime, Abstractions, Functions/Worker hosts, Hosting.AspNetCore, ProviderSupport, three email/SMS providers, three queue packages, Tools); tests cover both `HoneyDrunk.Notify.Tests` (unit) and `HoneyDrunk.Notify.IntegrationTests`. Coverage exclusions: Abstractions + Queue.Abstractions (interfaces only). Branch-protection requirement added separately after the first successful run lands.
+- Onboarded Notify to SonarQube Cloud (ADR-0011 D11). Wired a `sonarcloud` job in `pr.yml` that calls `HoneyDrunkStudios/HoneyDrunk.Actions/.github/workflows/job-sonarcloud.yml` on both `pull_request` (after `pr-core` succeeds) and `push` to `main` (standalone). PR analysis gates the merge on new-code findings; main-branch analysis populates the SonarCloud Overview dashboard and the leak-period baseline. Per-project source/test classification is discovered automatically from MSBuild `IsTestProject` properties; per-repo Sonar overrides can be added later via `Directory.Build.props` `<SonarQubeSetting>` items or as new inputs to `job-sonarcloud.yml`. Branch-protection requirement added separately after the first successful run lands.
 - Enabled ADR-0044 Grid Review request workflow and repo-local OpenClaw/Codex review configuration.
 - Refreshed HoneyDrunk.Standards to 0.2.9 for ADR-0047 testing tooling alignment.
 
