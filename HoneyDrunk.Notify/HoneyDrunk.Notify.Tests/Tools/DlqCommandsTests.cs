@@ -21,7 +21,9 @@ public sealed class DlqCommandsTests
     public async Task ListAsync_EmptyDlq_PrintsEmptyMessageAndReturnsZero()
     {
         var inspector = new FakeInspector();
-        var (commands, stdout, _) = CreateCommands(inspector);
+        using var stdout = new StringWriter();
+        using var stderr = new StringWriter();
+        var commands = CreateCommands(inspector, stdout, stderr);
 
         var exit = await commands.ListAsync(new NotifyToolsOptions { ListTake = 10 }, CancellationToken.None);
 
@@ -36,7 +38,9 @@ public sealed class DlqCommandsTests
         {
             ListResult = [MakeEntry("01ARZ3NDEKTSV4RRFFQ69G5FAV", reason: "max attempts")],
         };
-        var (commands, stdout, _) = CreateCommands(inspector);
+        using var stdout = new StringWriter();
+        using var stderr = new StringWriter();
+        var commands = CreateCommands(inspector, stdout, stderr);
 
         var exit = await commands.ListAsync(new NotifyToolsOptions { ListTake = 25 }, CancellationToken.None);
 
@@ -51,7 +55,9 @@ public sealed class DlqCommandsTests
     public async Task PeekAsync_NotFound_ReturnsOneAndWritesToStderr()
     {
         var inspector = new FakeInspector();
-        var (commands, _, stderr) = CreateCommands(inspector);
+        using var stdout = new StringWriter();
+        using var stderr = new StringWriter();
+        var commands = CreateCommands(inspector, stdout, stderr);
 
         var exit = await commands.PeekAsync("missing-id", CancellationToken.None);
 
@@ -66,7 +72,9 @@ public sealed class DlqCommandsTests
         {
             FindResult = MakeEntry("found-id", reason: "provider down"),
         };
-        var (commands, stdout, _) = CreateCommands(inspector);
+        using var stdout = new StringWriter();
+        using var stderr = new StringWriter();
+        var commands = CreateCommands(inspector, stdout, stderr);
 
         var exit = await commands.PeekAsync("found-id", CancellationToken.None);
 
@@ -81,7 +89,9 @@ public sealed class DlqCommandsTests
     public async Task ReplayAsync_DryRun_DoesNotInvokeInspectorAndReturnsZero()
     {
         var inspector = new FakeInspector();
-        var (commands, stdout, _) = CreateCommands(inspector);
+        using var stdout = new StringWriter();
+        using var stderr = new StringWriter();
+        var commands = CreateCommands(inspector, stdout, stderr);
 
         var exit = await commands.ReplayAsync(
             "id-1",
@@ -97,7 +107,9 @@ public sealed class DlqCommandsTests
     public async Task ReplayAsync_InspectorReturnsTrue_PrintsSuccessAndReturnsZero()
     {
         var inspector = new FakeInspector { ReplayResult = true };
-        var (commands, stdout, _) = CreateCommands(inspector);
+        using var stdout = new StringWriter();
+        using var stderr = new StringWriter();
+        var commands = CreateCommands(inspector, stdout, stderr);
 
         var exit = await commands.ReplayAsync(
             "id-1",
@@ -113,7 +125,9 @@ public sealed class DlqCommandsTests
     public async Task ReplayAsync_NotFound_ReturnsOneAndWritesToStderr()
     {
         var inspector = new FakeInspector { ReplayResult = false };
-        var (commands, _, stderr) = CreateCommands(inspector);
+        using var stdout = new StringWriter();
+        using var stderr = new StringWriter();
+        var commands = CreateCommands(inspector, stdout, stderr);
 
         var exit = await commands.ReplayAsync("missing", new NotifyToolsOptions(), CancellationToken.None);
 
@@ -125,7 +139,9 @@ public sealed class DlqCommandsTests
     public async Task PurgeAsync_DryRun_DoesNotInvokeInspectorAndReturnsZero()
     {
         var inspector = new FakeInspector();
-        var (commands, stdout, _) = CreateCommands(inspector);
+        using var stdout = new StringWriter();
+        using var stderr = new StringWriter();
+        var commands = CreateCommands(inspector, stdout, stderr);
 
         var exit = await commands.PurgeAsync(
             "id-1",
@@ -141,7 +157,9 @@ public sealed class DlqCommandsTests
     public async Task PurgeAsync_InspectorReturnsTrue_PrintsSuccessAndReturnsZero()
     {
         var inspector = new FakeInspector { PurgeResult = true };
-        var (commands, stdout, _) = CreateCommands(inspector);
+        using var stdout = new StringWriter();
+        using var stderr = new StringWriter();
+        var commands = CreateCommands(inspector, stdout, stderr);
 
         var exit = await commands.PurgeAsync("id-1", new NotifyToolsOptions(), CancellationToken.None);
 
@@ -154,7 +172,9 @@ public sealed class DlqCommandsTests
     public async Task PurgeAsync_NotFound_ReturnsOneAndWritesToStderr()
     {
         var inspector = new FakeInspector { PurgeResult = false };
-        var (commands, _, stderr) = CreateCommands(inspector);
+        using var stdout = new StringWriter();
+        using var stderr = new StringWriter();
+        var commands = CreateCommands(inspector, stdout, stderr);
 
         var exit = await commands.PurgeAsync("missing", new NotifyToolsOptions(), CancellationToken.None);
 
@@ -162,13 +182,11 @@ public sealed class DlqCommandsTests
         Assert.Contains("missing", stderr.ToString());
     }
 
-    private static (DlqCommands commands, StringWriter stdout, StringWriter stderr) CreateCommands(IDeadLetterInspector inspector)
+    private static DlqCommands CreateCommands(IDeadLetterInspector inspector, StringWriter stdout, StringWriter stderr)
     {
-        var stdout = new StringWriter();
-        var stderr = new StringWriter();
         Console.SetOut(stdout);
         Console.SetError(stderr);
-        return (new DlqCommands(inspector), stdout, stderr);
+        return new DlqCommands(inspector);
     }
 
     private static DeadLetterEntry MakeEntry(string notificationId, string reason)
