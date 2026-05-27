@@ -104,6 +104,9 @@ internal sealed partial class NotifyDispatcherBackgroundService(
             return;
         }
 #pragma warning disable CA1031 // Catch broad exception to keep the polling loop alive
+        // lgtm[cs/catch-of-all-exceptions] background-poller safety net: the dispatcher can throw
+        // arbitrary provider exceptions and the loop must survive them; OperationCanceledException
+        // is filtered above.
         catch (Exception ex)
 #pragma warning restore CA1031
         {
