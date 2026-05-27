@@ -42,7 +42,7 @@ internal sealed partial class EmailFileTemplateRenderer(
         var (bodyTemplate, isHtml) = await LoadBodyTemplateAsync(templateKey, cancellationToken);
         var body = SimpleTokenReplacer.Replace(bodyTemplate, values);
 
-        LogLoadedEmailTemplate(logger, (string)templateKey, isHtml);
+        LogLoadedEmailTemplate(logger, templateKey, isHtml);
 
         return new EmailContent(subject, body, isHtml);
     }
@@ -52,7 +52,7 @@ internal sealed partial class EmailFileTemplateRenderer(
         Message = "Loaded email template '{TemplateKey}' with IsHtml={IsHtml}.")]
     private static partial void LogLoadedEmailTemplate(
         ILogger logger,
-        string templateKey,
+        TemplateKey templateKey,
         bool isHtml);
 
     private async Task<(string content, bool isHtml)> LoadBodyTemplateAsync(

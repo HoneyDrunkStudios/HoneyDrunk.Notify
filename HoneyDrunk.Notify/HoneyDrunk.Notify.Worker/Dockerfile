@@ -26,11 +26,11 @@ RUN dotnet restore "HoneyDrunk.Notify.Worker/HoneyDrunk.Notify.Worker.csproj"
 
 COPY . .
 WORKDIR "/src/HoneyDrunk.Notify.Worker"
-RUN dotnet build "HoneyDrunk.Notify.Worker.csproj" -c $BUILD_CONFIGURATION -o /app/build
+RUN dotnet build "HoneyDrunk.Notify.Worker.csproj" -c "$BUILD_CONFIGURATION" -o /app/build
 
 FROM build AS publish
 ARG BUILD_CONFIGURATION=Release
-RUN dotnet publish "HoneyDrunk.Notify.Worker.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false
+RUN dotnet publish "HoneyDrunk.Notify.Worker.csproj" -c "$BUILD_CONFIGURATION" -o /app/publish /p:UseAppHost=false
 
 FROM base AS final
 WORKDIR /app

@@ -7,7 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-05-27
+
 ### Changed
+
+- `CommandLineParser.Parse` rewritten as a `while` loop dispatching to `ApplyFlag`, which returns the number of arg slots consumed. The previous `for` loop mutated `i` inside switch arms in six places (Sonar S127).
+- `DlqCommands.PeekAsync` / `ReplayAsync` / `PurgeAsync` and `Program.cs` argument validation now use `await Console.Error.WriteLineAsync(...)` from their async contexts (Sonar async-await rule).
+
+### Internal
 
 - Refreshed HoneyDrunk.Standards to 0.2.9 for ADR-0047 testing tooling alignment.
 

@@ -7,8 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-05-27
+
 ### Changed
 
+- `ListDeadLetterEntriesAsync` and `FindByNotificationIdAsync` replace `foreach` + immediate map with `.Select(...).Where(...)` / `.FirstOrDefault(...)` (CodeQL `cs/linq/missed-select`). Same observable behaviour; the new shape lets the analyzer see the data flow.
+- Backing fields `_initialized` and `_dlqInitialized` marked `volatile` so the double-checked-locking pattern around `EnsureQueueExistsAsync` / `EnsureDlqExistsAsync` is correctly modelled by static analysis. Without the modifier CodeQL `cs/constant-condition` collapsed the inner re-check.
+
+### Internal
+
+- Bumped `HoneyDrunk.Vault` `0.5.0 -> 0.7.0`.
+- Bumped `Azure.Storage.Queues` `12.25.0 -> 12.26.0`.
+- Bumped `Microsoft.Extensions.DependencyInjection.Abstractions` / `Microsoft.Extensions.Logging.Abstractions` / `Microsoft.Extensions.Options` `10.0.7 -> 10.0.8`.
 - Refreshed HoneyDrunk.Standards to 0.2.9 for ADR-0047 testing tooling alignment.
 
 ## [0.3.0] - 2026-05-18

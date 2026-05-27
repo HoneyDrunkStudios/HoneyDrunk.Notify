@@ -7,8 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Changed
+## [0.4.0] - 2026-05-27
 
+### Changed (breaking)
+
+- **Removed `TwilioOptions.AccountSid` and `TwilioOptions.AuthToken`** placeholder properties (Sonar S1133). Twilio credentials must be stored in Vault as `Twilio--AccountSid` / `Twilio--AuthToken` and resolved at send time -- both properties were retained at 0.3.0 for source compatibility but were never read by the provider.
+
+### Internal
+
+- Bumped `HoneyDrunk.Vault` `0.5.0 -> 0.7.0`.
+- Bumped `Microsoft.Extensions.DependencyInjection.Abstractions` / `Microsoft.Extensions.Logging.Abstractions` / `Microsoft.Extensions.Options` `10.0.7 -> 10.0.8`.
+- Bumped `Twilio` `7.14.7 -> 7.14.9`.
 - Refreshed HoneyDrunk.Standards to 0.2.9 for ADR-0047 testing tooling alignment.
 
 ## [0.3.0] - 2026-05-18

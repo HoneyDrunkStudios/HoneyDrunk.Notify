@@ -22,7 +22,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="HoneyDrunk.Vault" Version="0.5.0" />
+    <PackageReference Include="HoneyDrunk.Vault" Version="0.7.0" />
     <PackageReference Include="HoneyDrunk.Standards" Version="0.2.9">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>

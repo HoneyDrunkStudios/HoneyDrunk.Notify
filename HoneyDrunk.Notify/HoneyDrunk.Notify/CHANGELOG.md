@@ -7,8 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-05-27
+
 ### Changed
 
+- `NotificationDispatcher.LogDispatchFailedPermanent` parameter count 8 -> 7 (Sonar S107). Embedded the constant `DispatchFailed` event name directly in the message template and surfaced it via `LoggerMessage(EventName = ...)` so the structured event tag is preserved.
+- `FileTemplateRenderer` / `EmailFileTemplateRenderer` LoggerMessage delegates take `TemplateKey` directly instead of casting `(string)templateKey` at the call site (Sonar S6664 / CA1848). Argument evaluation is now deferred when the log level is disabled.
+
+### Internal
+
+- Bumped `HoneyDrunk.Kernel.Abstractions` `0.7.0 -> 0.8.0`.
+- Bumped `Microsoft.Extensions.DependencyInjection.Abstractions` / `Microsoft.Extensions.Logging.Abstractions` / `Microsoft.Extensions.Options` `10.0.7 -> 10.0.8`.
 - Refreshed HoneyDrunk.Standards to 0.2.9 for ADR-0047 testing tooling alignment.
 
 ## [0.3.0] - 2026-05-18

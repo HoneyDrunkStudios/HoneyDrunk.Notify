@@ -25,7 +25,7 @@ public readonly record struct AttemptId
     /// <exception cref="ArgumentException">Thrown if the string is not a valid Ulid.</exception>
     public AttemptId(string value)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(value, nameof(value));
+        ArgumentException.ThrowIfNullOrWhiteSpace(value);
 
         if (!Ulid.TryParse(value, out var ulid))
         {

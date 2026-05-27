@@ -97,7 +97,6 @@ public sealed partial class NotificationDispatcher(
                     activity?.SetStatus(ActivityStatusCode.Error, lastOutcome.ErrorMessage);
                     LogDispatchFailedPermanent(
                         logger,
-                        NotifyEventNames.DispatchFailed,
                         envelope.NotificationId,
                         attempt + 1,
                         lastOutcome.Provider,
@@ -176,11 +175,11 @@ public sealed partial class NotificationDispatcher(
         string? correlationId);
 
     [LoggerMessage(
+        EventName = NotifyEventNames.DispatchFailed,
         Level = LogLevel.Warning,
-        Message = "{Event}: NotificationId={NotificationId}, Attempt={Attempt}, Provider={Provider}, FailureKind={FailureKind}, Error={Error}, CorrelationId={CorrelationId}.")]
+        Message = "DispatchFailed: NotificationId={NotificationId}, Attempt={Attempt}, Provider={Provider}, FailureKind={FailureKind}, Error={Error}, CorrelationId={CorrelationId}.")]
     private static partial void LogDispatchFailedPermanent(
         ILogger logger,
-        string @event,
         NotificationId notificationId,
         int attempt,
         string provider,

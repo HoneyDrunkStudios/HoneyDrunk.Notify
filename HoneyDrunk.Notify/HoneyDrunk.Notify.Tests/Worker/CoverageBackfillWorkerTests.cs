@@ -229,7 +229,7 @@ public sealed partial class CoverageGateBackfillTests
                 return Task.FromResult<IReadOnlyList<QueuedNotification>>([]);
 
             _dequeued = true;
-            return Task.FromResult<IReadOnlyList<QueuedNotification>>(batch.Take(max).ToArray());
+            return Task.FromResult<IReadOnlyList<QueuedNotification>>([.. batch.Take(max)]);
         }
 
         public Task CompleteAsync(QueuedNotification item, CancellationToken ct = default)

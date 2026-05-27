@@ -19,7 +19,7 @@ public readonly record struct TemplateKey
     /// <exception cref="ArgumentException">Thrown when the value is null, empty, or exceeds the maximum length.</exception>
     public TemplateKey(string value)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(value, nameof(value));
+        ArgumentException.ThrowIfNullOrWhiteSpace(value);
 
         if (value.Length > MaxLength)
         {

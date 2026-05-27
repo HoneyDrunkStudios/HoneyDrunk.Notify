@@ -14,6 +14,8 @@ namespace HoneyDrunk.Notify.Worker.Hosting;
 /// Emits structured logs with per-cycle metrics and per-item correlation.
 /// </summary>
 #pragma warning disable CA1812 // Instantiated via DI (AddHostedService)
+#pragma warning disable SA1201 // Method order is dispatch-flow oriented, not type-kind oriented; helpers + LoggerMessage partials live below the orchestrator.
+#pragma warning disable SA1204 // Static helpers placed adjacent to their callers for readability.
 internal sealed partial class NotifyDispatcherBackgroundService(
     INotificationQueue queue,
     NotificationDispatcher dispatcher,
@@ -22,6 +24,21 @@ internal sealed partial class NotifyDispatcherBackgroundService(
     ILogger<NotifyDispatcherBackgroundService> logger) : BackgroundService
 #pragma warning restore CA1812
 {
+    private enum ItemDisposition
+    {
+        Completed,
+        Abandoned,
+        DeadLettered,
+    }
+
+    private struct PollCycleStats
+    {
+        public int Dequeued;
+        public int Completed;
+        public int Abandoned;
+        public int DeadLettered;
+    }
+
     /// <inheritdoc />
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
@@ -40,96 +57,119 @@ internal sealed partial class NotifyDispatcherBackgroundService(
 
         while (!stoppingToken.IsCancellationRequested)
         {
-            var completedCount = 0;
-            var abandonedCount = 0;
-            var deadLetteredCount = 0;
-            var dequeuedCount = 0;
+            await RunPollCycleAsync(options, maxDeliveryAttempts, stoppingToken);
 
-            try
-            {
-                var batch = await queue.DequeueBatchAsync(options.BatchSize, stoppingToken);
-                dequeuedCount = batch.Count;
-
-                foreach (var item in batch)
-                {
-                    LogProcessing(
-                        logger,
-                        item.Envelope.NotificationId,
-                        item.DeliveryCount,
-                        item.Envelope.CorrelationId);
-
-                    var outcome = await dispatcher.DispatchAsync(item.Envelope, stoppingToken);
-
-                    if (ShouldAbandon(outcome))
-                    {
-                        if (item.DeliveryCount >= maxDeliveryAttempts)
-                        {
-                            var dlqReason = $"Max delivery attempts ({maxDeliveryAttempts}) exceeded. LastFailureKind={outcome.FailureKind}";
-                            await queue.DeadLetterAsync(item, dlqReason, stoppingToken);
-                            deadLetteredCount++;
-
-                            LogDeadLettered(
-                                logger,
-                                NotifyEventNames.QueueDeadLettered,
-                                outcome.NotificationId,
-                                item.DeliveryCount,
-                                outcome.Status,
-                                outcome.FailureKind,
-                                item.Envelope.CorrelationId);
-                        }
-                        else
-                        {
-                            await queue.AbandonAsync(item, stoppingToken);
-                            abandonedCount++;
-
-                            LogAbandoned(
-                                logger,
-                                outcome.NotificationId,
-                                item.DeliveryCount,
-                                maxDeliveryAttempts,
-                                outcome.Status,
-                                outcome.FailureKind,
-                                item.Envelope.CorrelationId);
-                        }
-                    }
-                    else
-                    {
-                        await queue.CompleteAsync(item, stoppingToken);
-                        completedCount++;
-
-                        LogCompleted(
-                            logger,
-                            outcome.NotificationId,
-                            outcome.Channel,
-                            outcome.Provider,
-                            outcome.Status,
-                            item.Envelope.CorrelationId);
-                    }
-                }
-            }
-            catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+            if (stoppingToken.IsCancellationRequested)
             {
                 break;
             }
-#pragma warning disable CA1031 // Catch broad exception to keep the polling loop alive
-            catch (Exception ex)
-#pragma warning restore CA1031
-            {
-                logger.LogError(ex, "Unhandled error during notification dispatch cycle.");
-            }
-
-            LogPollCycleComplete(
-                logger,
-                options.BatchSize,
-                dequeuedCount,
-                completedCount,
-                abandonedCount,
-                deadLetteredCount);
 
             await Task.Delay(options.PollInterval, stoppingToken).ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
         }
 
         logger.LogInformation("Notify dispatcher stopped.");
+    }
+
+    private async Task RunPollCycleAsync(
+        NotifyWorkerOptions options,
+        int maxDeliveryAttempts,
+        CancellationToken stoppingToken)
+    {
+        var stats = default(PollCycleStats);
+
+        try
+        {
+            var batch = await queue.DequeueBatchAsync(options.BatchSize, stoppingToken);
+            stats.Dequeued = batch.Count;
+
+            foreach (var item in batch)
+            {
+                var disposition = await ProcessItemAsync(item, maxDeliveryAttempts, stoppingToken);
+                switch (disposition)
+                {
+                    case ItemDisposition.Completed:
+                        stats.Completed++;
+                        break;
+                    case ItemDisposition.DeadLettered:
+                        stats.DeadLettered++;
+                        break;
+                    case ItemDisposition.Abandoned:
+                        stats.Abandoned++;
+                        break;
+                }
+            }
+        }
+        catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+        {
+            return;
+        }
+#pragma warning disable CA1031 // Catch broad exception to keep the polling loop alive
+        catch (Exception ex)
+#pragma warning restore CA1031
+        {
+            logger.LogError(ex, "Unhandled error during notification dispatch cycle.");
+        }
+
+        LogPollCycleComplete(
+            logger,
+            options.BatchSize,
+            stats.Dequeued,
+            stats.Completed,
+            stats.Abandoned,
+            stats.DeadLettered);
+    }
+
+    private async Task<ItemDisposition> ProcessItemAsync(
+        QueuedNotification item,
+        int maxDeliveryAttempts,
+        CancellationToken stoppingToken)
+    {
+        LogProcessing(
+            logger,
+            item.Envelope.NotificationId,
+            item.DeliveryCount,
+            item.Envelope.CorrelationId);
+
+        var outcome = await dispatcher.DispatchAsync(item.Envelope, stoppingToken);
+
+        if (!ShouldAbandon(outcome))
+        {
+            await queue.CompleteAsync(item, stoppingToken);
+            LogCompleted(
+                logger,
+                outcome.NotificationId,
+                outcome.Channel,
+                outcome.Provider,
+                outcome.Status,
+                item.Envelope.CorrelationId);
+            return ItemDisposition.Completed;
+        }
+
+        if (item.DeliveryCount >= maxDeliveryAttempts)
+        {
+            var dlqReason = $"Max delivery attempts ({maxDeliveryAttempts}) exceeded. LastFailureKind={outcome.FailureKind}";
+            await queue.DeadLetterAsync(item, dlqReason, stoppingToken);
+            LogDeadLettered(
+                logger,
+                NotifyEventNames.QueueDeadLettered,
+                outcome.NotificationId,
+                item.DeliveryCount,
+                outcome.Status,
+                outcome.FailureKind,
+                item.Envelope.CorrelationId);
+            return ItemDisposition.DeadLettered;
+        }
+
+        await queue.AbandonAsync(item, stoppingToken);
+        LogAbandoned(
+            logger,
+            outcome.NotificationId,
+            item.DeliveryCount,
+            maxDeliveryAttempts,
+            outcome.Status,
+            outcome.FailureKind,
+            item.Envelope.CorrelationId);
+        return ItemDisposition.Abandoned;
     }
 
     /// <summary>
@@ -208,3 +248,5 @@ internal sealed partial class NotifyDispatcherBackgroundService(
         int abandonedCount,
         int deadLetteredCount);
 }
+#pragma warning restore SA1201
+#pragma warning restore SA1204

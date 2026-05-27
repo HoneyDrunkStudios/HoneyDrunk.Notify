@@ -9,7 +9,7 @@
 
     <!-- Package Metadata -->
     <PackageId>HoneyDrunk.Notify.Abstractions</PackageId>
-    <Version>0.3.0</Version>
+    <Version>0.4.0</Version>
     <Authors>HoneyDrunk Studios</Authors>
     <Description>Pure contracts and abstractions for HoneyDrunk.Notify – the Grid notification subsystem. Provides channel-agnostic notification interfaces, message templates, and delivery primitives. Safe for libraries and downstream Nodes.</Description>
     <PackageTags>notify;abstractions;notifications;channels;templates;grid</PackageTags>
@@ -25,7 +25,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="HoneyDrunk.Kernel.Abstractions" Version="0.7.0" />
+    <PackageReference Include="HoneyDrunk.Kernel.Abstractions" Version="0.8.0" />
     <PackageReference Include="HoneyDrunk.Standards" Version="0.2.9">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>

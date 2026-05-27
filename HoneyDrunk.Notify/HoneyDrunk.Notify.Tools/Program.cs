@@ -16,13 +16,13 @@ var options = parsed.Options;
 
 if (string.IsNullOrWhiteSpace(options.QueueName))
 {
-    Console.Error.WriteLine("ERROR: --queue is required.");
+    await Console.Error.WriteLineAsync("ERROR: --queue is required.");
     return 1;
 }
 
 if (parsed.SubVerb is "peek" or "replay" or "purge" && string.IsNullOrWhiteSpace(parsed.TargetId))
 {
-    Console.Error.WriteLine($"ERROR: --id is required for 'dlq {parsed.SubVerb}'.");
+    await Console.Error.WriteLineAsync($"ERROR: --id is required for 'dlq {parsed.SubVerb}'.");
     return 1;
 }
 

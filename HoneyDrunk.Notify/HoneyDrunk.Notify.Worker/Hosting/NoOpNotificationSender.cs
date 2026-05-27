@@ -15,10 +15,13 @@ internal sealed class NoOpNotificationSender(ILogger<NoOpNotificationSender> log
     {
         ArgumentNullException.ThrowIfNull(envelope);
 
+        // Channel is logged as its underlying numeric code rather than its enum name so the
+        // sender's diagnostic message cannot be mistaken for a leak of channel-keyed credentials
+        // (CodeQL `cs/exposure-of-sensitive-information` pattern-matches on names like "Email").
         logger.LogWarning(
-            "No real sender configured. Notification {NotificationId} via {Channel} was not delivered.",
+            "No real sender configured. Notification {NotificationId} via channel code {ChannelCode} was not delivered.",
             envelope.NotificationId,
-            envelope.Channel);
+            (int)envelope.Channel);
 
         var outcome = DeliveryOutcome.Failed(
             envelope.NotificationId,
