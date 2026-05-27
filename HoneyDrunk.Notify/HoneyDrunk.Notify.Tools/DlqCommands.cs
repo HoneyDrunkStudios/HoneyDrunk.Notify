@@ -38,7 +38,7 @@ internal sealed class DlqCommands(IDeadLetterInspector inspector)
 
         if (entry is null)
         {
-            Console.Error.WriteLine($"No DLQ entry found for notification ID '{notificationId}'.");
+            await Console.Error.WriteLineAsync($"No DLQ entry found for notification ID '{notificationId}'.");
             return 1;
         }
 
@@ -68,7 +68,7 @@ internal sealed class DlqCommands(IDeadLetterInspector inspector)
 
         if (!success)
         {
-            Console.Error.WriteLine($"No DLQ entry found for notification ID '{notificationId}'.");
+            await Console.Error.WriteLineAsync($"No DLQ entry found for notification ID '{notificationId}'.");
             return 1;
         }
 
@@ -88,7 +88,7 @@ internal sealed class DlqCommands(IDeadLetterInspector inspector)
 
         if (!success)
         {
-            Console.Error.WriteLine($"No DLQ entry found for notification ID '{notificationId}'.");
+            await Console.Error.WriteLineAsync($"No DLQ entry found for notification ID '{notificationId}'.");
             return 1;
         }
 

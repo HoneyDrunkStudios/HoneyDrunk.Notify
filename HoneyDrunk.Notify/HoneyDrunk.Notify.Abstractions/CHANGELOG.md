@@ -7,8 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Changed
+## [0.4.0] - 2026-05-27
 
+### Security
+
+- `AttemptId`, `IdempotencyKey`, `NotificationId`, `Recipient.Email`, `TemplateKey` constructors no longer pass an explicit `nameof(value)` second argument to `ArgumentException.ThrowIfNullOrWhiteSpace` (Sonar S6964). The BCL helper already auto-captures the caller-expression parameter name; the explicit argument was overriding it and hiding the caller-supplied identifier in thrown messages.
+
+### Internal
+
+- Bumped `HoneyDrunk.Kernel.Abstractions` `0.7.0 → 0.8.0`.
 - Refreshed HoneyDrunk.Standards to 0.2.9 for ADR-0047 testing tooling alignment.
 
 ## [0.3.0] - 2026-05-18

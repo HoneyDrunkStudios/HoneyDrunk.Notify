@@ -49,7 +49,7 @@ builder.Services.AddHoneyDrunkNotifyWorker(ConfigureWorkerOptions);
 var app = builder.Build();
 app.MapNotifyHealthEndpoints();
 app.MapVaultInvalidationWebhook("/internal/vault/invalidate");
-app.Run();
+await app.RunAsync();
 
 void ConfigureWorkerOptions(NotifyWorkerOptions options)
 {

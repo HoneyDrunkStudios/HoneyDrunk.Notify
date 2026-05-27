@@ -25,7 +25,7 @@ internal sealed partial class FileTemplateRenderer(
         CancellationToken cancellationToken = default)
     {
         var templateContent = await _loader.LoadAsync(templateKey, cancellationToken);
-        LogLoadedTemplate(logger, (string)templateKey);
+        LogLoadedTemplate(logger, templateKey);
         var values = TemplateModelFlattener.Flatten(model);
         return SimpleTokenReplacer.Replace(templateContent, values);
     }
@@ -35,5 +35,5 @@ internal sealed partial class FileTemplateRenderer(
         Message = "Loaded template '{TemplateKey}'.")]
     private static partial void LogLoadedTemplate(
         ILogger logger,
-        string templateKey);
+        TemplateKey templateKey);
 }

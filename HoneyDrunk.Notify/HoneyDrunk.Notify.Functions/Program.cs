@@ -49,7 +49,7 @@ builder.Services
     .AddHoneyDrunkNotifyResendProvider(_ => { })
     .AddHoneyDrunkNotifyTwilioProvider(_ => { });
 
-builder.Build().Run();
+await builder.Build().RunAsync();
 
 static EnvironmentId ResolveEnvironment(IConfiguration configuration)
 {

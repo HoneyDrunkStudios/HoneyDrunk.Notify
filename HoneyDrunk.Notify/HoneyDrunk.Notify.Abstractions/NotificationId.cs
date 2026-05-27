@@ -26,7 +26,7 @@ public readonly record struct NotificationId
     /// <exception cref="ArgumentException">Thrown if the string is not a valid Ulid.</exception>
     public NotificationId(string value)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(value, nameof(value));
+        ArgumentException.ThrowIfNullOrWhiteSpace(value);
 
         if (!Ulid.TryParse(value, out var ulid))
         {

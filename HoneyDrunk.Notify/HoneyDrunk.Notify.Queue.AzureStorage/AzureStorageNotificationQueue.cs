@@ -29,8 +29,8 @@ internal sealed partial class AzureStorageNotificationQueue : INotificationQueue
     private readonly SemaphoreSlim _initLock = new(1, 1);
     private QueueClient? _client;
     private QueueClient? _dlqClient;
-    private bool _initialized;
-    private bool _dlqInitialized;
+    private volatile bool _initialized;
+    private volatile bool _dlqInitialized;
     private bool _disposed;
 
     public AzureStorageNotificationQueue(
@@ -160,16 +160,10 @@ internal sealed partial class AzureStorageNotificationQueue : INotificationQueue
         if (response.Value is null || response.Value.Length == 0)
             return [];
 
-        var results = new List<DeadLetterEntry>(response.Value.Length);
-
-        foreach (var msg in response.Value)
-        {
-            var wrapper = TryDeserializeWrapper(msg.MessageText);
-            if (wrapper is not null)
-                results.Add(WrapperToEntry(wrapper));
-        }
-
-        return results;
+        return [.. response.Value
+            .Select(msg => TryDeserializeWrapper(msg.MessageText))
+            .Where(wrapper => wrapper is not null)
+            .Select(wrapper => WrapperToEntry(wrapper!))];
     }
 
     /// <inheritdoc />
@@ -182,14 +176,11 @@ internal sealed partial class AzureStorageNotificationQueue : INotificationQueue
         if (response.Value is null)
             return null;
 
-        foreach (var msg in response.Value)
-        {
-            var wrapper = TryDeserializeWrapper(msg.MessageText);
-            if (wrapper?.NotificationId == notificationId)
-                return WrapperToEntry(wrapper);
-        }
+        var match = response.Value
+            .Select(msg => TryDeserializeWrapper(msg.MessageText))
+            .FirstOrDefault(wrapper => wrapper?.NotificationId == notificationId);
 
-        return null;
+        return match is null ? null : WrapperToEntry(match);
     }
 
     /// <inheritdoc />

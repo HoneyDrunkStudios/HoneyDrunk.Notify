@@ -22,47 +22,49 @@ internal static class CommandLineParser
         var options = new NotifyToolsOptions();
         string? targetId = null;
 
-        for (var i = 2; i < args.Length; i++)
+        var i = 2;
+        while (i < args.Length)
         {
             var flag = args[i].ToLowerInvariant();
-
-            switch (flag)
-            {
-                case "--adapter" when HasNext(args, i):
-                    options.Adapter = args[++i];
-                    break;
-
-                case "--queue" when HasNext(args, i):
-                    options.QueueName = args[++i];
-                    break;
-
-                case "--dlq" when HasNext(args, i):
-                    options.DeadLetterQueueName = args[++i];
-                    break;
-
-                case "--connection" when HasNext(args, i):
-                    options.ConnectionString = args[++i];
-                    break;
-
-                case "--take" when HasNext(args, i) && int.TryParse(args[i + 1], out var take):
-                    options.ListTake = take;
-                    i++;
-                    break;
-
-                case "--id" when HasNext(args, i):
-                    targetId = args[++i];
-                    break;
-
-                case "--dry-run":
-                    options.DryRun = true;
-                    break;
-            }
+            var consumed = ApplyFlag(flag, args, i, options, ref targetId);
+            i += consumed;
         }
 
         return new ParsedCommand(verb, subVerb, options, targetId);
     }
 
     private static bool HasNext(string[] args, int current) => current + 1 < args.Length;
+
+    // Returns how many arg slots the flag consumed (1 = boolean / unknown, 2 = flag + value).
+    private static int ApplyFlag(string flag, string[] args, int i, NotifyToolsOptions options, ref string? targetId)
+    {
+        switch (flag)
+        {
+            case "--adapter" when HasNext(args, i):
+                options.Adapter = args[i + 1];
+                return 2;
+            case "--queue" when HasNext(args, i):
+                options.QueueName = args[i + 1];
+                return 2;
+            case "--dlq" when HasNext(args, i):
+                options.DeadLetterQueueName = args[i + 1];
+                return 2;
+            case "--connection" when HasNext(args, i):
+                options.ConnectionString = args[i + 1];
+                return 2;
+            case "--take" when HasNext(args, i) && int.TryParse(args[i + 1], out var take):
+                options.ListTake = take;
+                return 2;
+            case "--id" when HasNext(args, i):
+                targetId = args[i + 1];
+                return 2;
+            case "--dry-run":
+                options.DryRun = true;
+                return 1;
+            default:
+                return 1;
+        }
+    }
 
     internal sealed record ParsedCommand(string Verb, string? SubVerb, NotifyToolsOptions Options, string? TargetId);
 }

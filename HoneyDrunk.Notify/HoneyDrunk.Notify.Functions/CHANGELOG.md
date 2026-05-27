@@ -7,8 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-05-27
+
 ### Changed
 
+- `Program.cs` host startup now `await builder.Build().RunAsync()` instead of fire-and-forget `Run()` so any shutdown exception surfaces (Sonar async-await rule).
+
+### Internal
+
+- Bumped `HoneyDrunk.Kernel` / `HoneyDrunk.Kernel.Abstractions` `0.7.0 -> 0.8.0`.
+- Bumped `HoneyDrunk.Vault.EventGrid` / `HoneyDrunk.Vault.Providers.AppConfiguration` / `HoneyDrunk.Vault.Providers.AzureKeyVault` `0.5.0 -> 0.7.0`.
+- Bumped `Microsoft.Extensions.Configuration.Binder` `10.0.7 -> 10.0.8`.
 - Refreshed HoneyDrunk.Standards to 0.2.9 for ADR-0047 testing tooling alignment.
 
 ## [0.3.0] - 2026-05-18

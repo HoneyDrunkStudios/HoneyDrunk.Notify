@@ -26,7 +26,7 @@ public sealed record Recipient(NotificationChannel Channel, string Address)
     /// <returns>A new <see cref="Recipient"/> targeting the email channel.</returns>
     public static Recipient Email(string emailAddress)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(emailAddress, nameof(emailAddress));
+        ArgumentException.ThrowIfNullOrWhiteSpace(emailAddress);
         return new Recipient(NotificationChannel.Email, emailAddress);
     }
 }

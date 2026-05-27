@@ -9,7 +9,7 @@
 
     <!-- Package Metadata -->
     <PackageId>HoneyDrunk.Notify.Queue.Abstractions</PackageId>
-    <Version>0.3.0</Version>
+    <Version>0.4.0</Version>
     <Authors>HoneyDrunk Studios</Authors>
     <Description>Queue abstractions for HoneyDrunk.Notify – defines the durable work-queue boundary for notification dispatch. Vendor-neutral contracts for enqueue, dequeue, complete, and abandon operations.</Description>
     <PackageTags>notify;queue;abstractions;notifications;grid</PackageTags>
