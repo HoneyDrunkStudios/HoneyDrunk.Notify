@@ -12,7 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - `NotifyDispatcherBackgroundService.ExecuteAsync` cognitive complexity 17 -> under 15 (Sonar S3776). Extracted `RunPollCycleAsync` (per-cycle orchestration) and `ProcessItemAsync` (per-item dispatch + completion/abandon/dead-letter routing). Introduces an internal `PollCycleStats` struct and `ItemDisposition` enum.
-- `NoOpNotificationSender.SendAsync` warning log now reports the channel as its numeric code (`{ChannelCode}`) rather than its enum name, so CodeQL `cs/exposure-of-sensitive-information` no longer pattern-matches on the literal `Email` constant. Numeric code is unambiguous with `NotificationChannel`.
+- `NoOpNotificationSender.SendAsync` warning log retains the human-readable `{Channel}` enum name for operator triage; the CodeQL `cs/exposure-of-sensitive-information` finding that fired on the literal `Email` constant is annotated with `[SuppressMessage]` (justification: `NotificationChannel` is a public routing enum, not credential material) and the matching GHCS alert is dismissed.
 - `Program.cs` host startup now `await app.RunAsync()` instead of `app.Run()` so any shutdown exception surfaces (Sonar async-await rule).
 - `Dockerfile`: `$BUILD_CONFIGURATION` quoted as `"$BUILD_CONFIGURATION"` in `dotnet build` / `dotnet publish` invocations.
 
