@@ -18,6 +18,7 @@
     <ProjectReference Include="..\HoneyDrunk.Notify.Providers.Email.Smtp\HoneyDrunk.Notify.Providers.Email.Smtp.csproj" />
     <ProjectReference Include="..\HoneyDrunk.Notify.Providers.Sms.Twilio\HoneyDrunk.Notify.Providers.Sms.Twilio.csproj" />
     <ProjectReference Include="..\HoneyDrunk.Notify.Queue.AzureStorage\HoneyDrunk.Notify.Queue.AzureStorage.csproj" />
+    <ProjectReference Include="..\HoneyDrunk.Notify.Tools\HoneyDrunk.Notify.Tools.csproj" />
     <ProjectReference Include="..\HoneyDrunk.Notify.Worker\HoneyDrunk.Notify.Worker.csproj" />
   </ItemGroup>
 
