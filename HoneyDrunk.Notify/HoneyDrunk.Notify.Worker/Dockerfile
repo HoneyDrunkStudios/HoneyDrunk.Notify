@@ -24,6 +24,9 @@ COPY ["HoneyDrunk.Notify.Providers.Sms.Twilio/HoneyDrunk.Notify.Providers.Sms.Tw
 COPY ["NuGet.config", "."]
 RUN dotnet restore "HoneyDrunk.Notify.Worker/HoneyDrunk.Notify.Worker.csproj"
 
+# Recursive copy is bounded by .dockerignore at the build-context root, which
+# excludes bin/, obj/, TestResults/, .git/, .vs/, .env*, secrets.json,
+# appsettings.Development.json, *.pfx, *.snk, and test projects (Sonar S6470).
 COPY . .
 WORKDIR "/src/HoneyDrunk.Notify.Worker"
 RUN dotnet build "HoneyDrunk.Notify.Worker.csproj" -c "$BUILD_CONFIGURATION" -o /app/build
