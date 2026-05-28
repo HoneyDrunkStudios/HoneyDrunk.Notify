@@ -1,0 +1,52 @@
+# Build artifacts
+**/bin/
+**/obj/
+**/out/
+**/publish/
+**/TestResults/
+**/coverage*
+**/*.coverage
+**/*.coveragexml
+
+# IDE / editor
+**/.vs/
+**/.vscode/
+**/.idea/
+**/*.user
+**/*.suo
+**/*.userprefs
+
+# Source control & CI
+**/.git/
+**/.github/
+**/.gitignore
+**/.gitattributes
+**/.editorconfig
+
+# Local tooling
+**/.azure/
+**/.devcontainer/
+
+# Secrets & local config (defence in depth — should never be in source)
+**/.env
+**/.env.*
+**/secrets.json
+**/appsettings.Development.json
+**/appsettings.Local.json
+**/*.pfx
+**/*.snk
+
+# Docs / repo metadata (not needed at runtime)
+**/README.md
+**/CHANGELOG.md
+**/LICENSE
+**/docs/
+
+# Tests (Dockerfile only builds the Worker — tests would only inflate the image)
+**/HoneyDrunk.Notify.Tests/
+**/HoneyDrunk.Notify.IntegrationTests/
+
+# Other solution scaffolding not consumed by the Worker build
+**/coverlet.runsettings
+**/Dockerfile*
+**/.dockerignore
