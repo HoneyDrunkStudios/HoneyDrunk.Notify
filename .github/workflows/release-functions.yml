@@ -1,25 +1,63 @@
 name: Release Notify.Functions
 
-# Tag-triggered release for Notify.Functions.
-# Push a tag like `functions-v0.1.0` to build, publish, and deploy to
-# func-hd-notify-<env> via the reusable job-deploy-function.yml (ADR-0012:
-# deploy logic lives in HoneyDrunk.Actions, never reimplemented here).
+# Staged release for Notify.Functions (ADR-0033, staged-promotion amendment).
 #
-# Environment scope: dev only, by design. Per the ADR-0015 rollout, this
-# release line deploys to `dev` (env-scoped GitHub vars resolved in the
-# `resolve` job, `environment: dev`). Staging / prod promotion gates are a
-# deliberate follow-up, not part of this workflow. A `functions-v*` tag
-# therefore deploys to dev and nothing else — intentional, not a gap.
+# A single `build` job publishes the artifact once; three deploy paths consume
+# it, each its own job under a static GitHub Environment:
+#
+#   * push to `main`, path-filtered  -> deploy-dev (continuous)
+#   * `functions-v*` SemVer tag      -> deploy-staging, then deploy-prod
+#   * workflow_dispatch              -> deploy-dev (manual escape hatch)
+#
+# Staged promotion (ADO-style): a tag push deploys to staging automatically,
+# then deploy-prod (needs: deploy-staging) is gated by the `prod` GitHub
+# Environment's required-reviewers rule — it queues after staging succeeds and
+# PAUSES until a human approves, then deploys prod. The gate is configured on
+# the prod Environment in repo settings (not in YAML) when prod is provisioned;
+# until then the staging/prod jobs only run on a tag and fail fast if the
+# environment's vars are unset.
+#
+# Artifact promotion: all three deploys reuse the SAME published artifact from
+# the single `build` job, so promotion is genuinely build-once same-artifact
+# (unlike the container lines, which rebuild per per-env registry).
+#
+# Deploy mechanics stay in HoneyDrunk.Actions (ADR-0012); only trigger/stage
+# policy — inherently per-repo — lives here. Path filters are not evaluated for
+# tag pushes, so the tag trigger stays unfiltered.
 
 on:
   push:
+    branches: [main]
+    paths:
+      # Own deployable source (the .Functions .csproj is covered by this glob).
+      - 'HoneyDrunk.Notify/HoneyDrunk.Notify.Functions/**'
+      # ProjectReference closure of the Functions binary.
+      - 'HoneyDrunk.Notify/HoneyDrunk.Notify/**'
+      - 'HoneyDrunk.Notify/HoneyDrunk.Notify.Abstractions/**'
+      - 'HoneyDrunk.Notify/HoneyDrunk.Notify.Hosting.AspNetCore/**'
+      - 'HoneyDrunk.Notify/HoneyDrunk.Notify.Providers.Email.Resend/**'
+      - 'HoneyDrunk.Notify/HoneyDrunk.Notify.Providers.Email.Smtp/**'
+      - 'HoneyDrunk.Notify/HoneyDrunk.Notify.Providers.Sms.Twilio/**'
+      # Shared *source* (no .csproj; pulled in via <Compile Include>, which a
+      # ProjectReference-only scan misses): HostBootstrap is compiled directly
+      # into Functions & Worker; ProviderSupport is compiled into the Providers
+      # this binary links. A change to either alters the deployed binary, so
+      # both are in-closure and must redeploy on main.
+      - 'HoneyDrunk.Notify/HoneyDrunk.Notify.HostBootstrap/**'
+      - 'HoneyDrunk.Notify/HoneyDrunk.Notify.ProviderSupport/**'
+      # Solution file, NuGet restore config, and the workflow itself — all
+      # affect the published artifact.
+      - 'HoneyDrunk.Notify/HoneyDrunk.Notify.slnx'
+      - 'HoneyDrunk.Notify/NuGet.config'
+      - '.github/workflows/release-functions.yml'
     tags:
       - 'functions-v*'
   workflow_dispatch:
 
+# id-token: write is granted per deploy job (least privilege); the workflow
+# default stays read-only.
 permissions:
   contents: read
-  id-token: write
 
 jobs:
   build:
@@ -36,11 +74,10 @@ jobs:
       publish-output: ./publish
       artifact-name: notify-functions
 
-  resolve:
+  # ============================ DEV (continuous) ============================
+  resolve-dev:
     name: Resolve dev config
-    # No `needs: build` — resolve consumes no build output or artifact (only the
-    # `deploy` job needs the artifact). Running resolve in parallel with build
-    # avoids serializing var resolution behind restore/build/test/publish.
+    if: ${{ (github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'workflow_dispatch' }}
     runs-on: ubuntu-latest
     environment: dev
     outputs:
@@ -51,32 +88,38 @@ jobs:
       azure-tenant-id: ${{ vars.AZURE_TENANT_ID }}
       azure-subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
     steps:
-      - name: Echo resolved targets
+      - name: Validate environment vars
+        env:
+          HD_ENV: ${{ vars.HD_ENV }}
         run: |
-          echo "Function App : func-hd-notify-${{ vars.HD_ENV }}"
-          echo "Resource Grp : rg-hd-notify-${{ vars.HD_ENV }}"
-          echo "Key Vault    : kv-hd-notify-${{ vars.HD_ENV }}"
+          set -euo pipefail
+          if [ -z "$HD_ENV" ]; then
+            echo "::error::vars.HD_ENV is empty for environment 'dev' — is it provisioned/configured?"
+            exit 1
+          fi
+          echo "Environment  : dev"
+          echo "Function App : func-hd-notify-$HD_ENV"
 
-  deploy:
+  deploy-dev:
     name: Deploy to dev
-    needs: [build, resolve]
-    # A reusable-workflow caller job cannot declare `environment:` itself, so
-    # the environment is passed through as an input. The reusable workflow's
-    # deploy job runs under `environment: dev`, making the OIDC token subject
-    # repo:HoneyDrunkStudios/HoneyDrunk.Notify:environment:dev — which matches
-    # the environment-scoped federated credential on sp-hd-notify-dev.
-    # `resolve` (also environment: dev) separately supplies env-scoped vars.
+    needs: [build, resolve-dev]
+    permissions:
+      contents: read
+      id-token: write
+    concurrency:
+      group: release-functions-dev
+      cancel-in-progress: true
     uses: HoneyDrunkStudios/HoneyDrunk.Actions/.github/workflows/job-deploy-function.yml@main
     with:
       environment: dev
       artifact-name: notify-functions
       package-path: ./publish
-      functions-app: ${{ needs.resolve.outputs.functions-app }}
-      resource-group: ${{ needs.resolve.outputs.resource-group }}
-      azure-client-id: ${{ needs.resolve.outputs.azure-client-id }}
-      azure-tenant-id: ${{ needs.resolve.outputs.azure-tenant-id }}
-      azure-subscription-id: ${{ needs.resolve.outputs.azure-subscription-id }}
-      keyvault-name: ${{ needs.resolve.outputs.keyvault-name }}
+      functions-app: ${{ needs.resolve-dev.outputs.functions-app }}
+      resource-group: ${{ needs.resolve-dev.outputs.resource-group }}
+      azure-client-id: ${{ needs.resolve-dev.outputs.azure-client-id }}
+      azure-tenant-id: ${{ needs.resolve-dev.outputs.azure-tenant-id }}
+      azure-subscription-id: ${{ needs.resolve-dev.outputs.azure-subscription-id }}
+      keyvault-name: ${{ needs.resolve-dev.outputs.keyvault-name }}
       keyvault-secrets: |
         Resend--ApiKey
         Twilio--AccountSid
@@ -84,8 +127,124 @@ jobs:
         Smtp--Username
         Smtp--Password
         NotifyQueueConnection
-      # HealthFunction exposes GET /api/health (aggregates the registered
-      # INotifyHealthContributor set; 503 only when the subsystem is Unhealthy).
-      # The reusable workflow probes this after deploy and gates the traffic
-      # shift on a healthy response.
+      health-check-url: /api/health
+
+  # ============================ STAGING (tag) ==============================
+  resolve-staging:
+    name: Resolve staging config
+    if: ${{ github.event_name == 'push' && startsWith(github.ref, 'refs/tags/') }}
+    runs-on: ubuntu-latest
+    environment: staging
+    outputs:
+      functions-app: func-hd-notify-${{ vars.HD_ENV }}
+      resource-group: rg-hd-notify-${{ vars.HD_ENV }}
+      keyvault-name: kv-hd-notify-${{ vars.HD_ENV }}
+      azure-client-id: ${{ vars.AZURE_CLIENT_ID }}
+      azure-tenant-id: ${{ vars.AZURE_TENANT_ID }}
+      azure-subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+    steps:
+      - name: Validate environment vars
+        env:
+          HD_ENV: ${{ vars.HD_ENV }}
+        run: |
+          set -euo pipefail
+          if [ -z "$HD_ENV" ]; then
+            echo "::error::vars.HD_ENV is empty for environment 'staging' — not provisioned yet?"
+            exit 1
+          fi
+          echo "Environment  : staging"
+          echo "Function App : func-hd-notify-$HD_ENV"
+
+  deploy-staging:
+    name: Deploy to staging
+    needs: [build, resolve-staging]
+    permissions:
+      contents: read
+      id-token: write
+    concurrency:
+      group: release-functions-staging
+      cancel-in-progress: false
+    uses: HoneyDrunkStudios/HoneyDrunk.Actions/.github/workflows/job-deploy-function.yml@main
+    with:
+      environment: staging
+      artifact-name: notify-functions
+      package-path: ./publish
+      functions-app: ${{ needs.resolve-staging.outputs.functions-app }}
+      resource-group: ${{ needs.resolve-staging.outputs.resource-group }}
+      azure-client-id: ${{ needs.resolve-staging.outputs.azure-client-id }}
+      azure-tenant-id: ${{ needs.resolve-staging.outputs.azure-tenant-id }}
+      azure-subscription-id: ${{ needs.resolve-staging.outputs.azure-subscription-id }}
+      keyvault-name: ${{ needs.resolve-staging.outputs.keyvault-name }}
+      keyvault-secrets: |
+        Resend--ApiKey
+        Twilio--AccountSid
+        Twilio--AuthToken
+        Smtp--Username
+        Smtp--Password
+        NotifyQueueConnection
+      health-check-url: /api/health
+
+  # ======================= PROD (gated; needs staging) =====================
+  resolve-prod:
+    name: Resolve prod config
+    # needs: deploy-staging so the prod Environment gate (required reviewers)
+    # can't be reached until staging succeeds — the approval pause happens AFTER
+    # staging, not in parallel with it. (Both resolve-prod and the deploy enter
+    # the prod environment; collapsing to a single approval is a prod-provisioning
+    # follow-up.)
+    needs: deploy-staging
+    if: ${{ github.event_name == 'push' && startsWith(github.ref, 'refs/tags/') }}
+    runs-on: ubuntu-latest
+    environment: prod
+    outputs:
+      functions-app: func-hd-notify-${{ vars.HD_ENV }}
+      resource-group: rg-hd-notify-${{ vars.HD_ENV }}
+      keyvault-name: kv-hd-notify-${{ vars.HD_ENV }}
+      azure-client-id: ${{ vars.AZURE_CLIENT_ID }}
+      azure-tenant-id: ${{ vars.AZURE_TENANT_ID }}
+      azure-subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+    steps:
+      - name: Validate environment vars
+        env:
+          HD_ENV: ${{ vars.HD_ENV }}
+        run: |
+          set -euo pipefail
+          if [ -z "$HD_ENV" ]; then
+            echo "::error::vars.HD_ENV is empty for environment 'prod' — not provisioned yet?"
+            exit 1
+          fi
+          echo "Environment  : prod"
+          echo "Function App : func-hd-notify-$HD_ENV"
+
+  deploy-prod:
+    name: Deploy to prod
+    # The staged gate: prod runs only after staging succeeds, and the reusable
+    # workflow's inner deploy job runs under `environment: prod` — whose
+    # required-reviewers rule PAUSES the run until a human approves. Reuses the
+    # SAME artifact `build` produced (genuine build-once same-artifact promotion).
+    needs: [build, resolve-prod]
+    permissions:
+      contents: read
+      id-token: write
+    concurrency:
+      group: release-functions-prod
+      cancel-in-progress: false
+    uses: HoneyDrunkStudios/HoneyDrunk.Actions/.github/workflows/job-deploy-function.yml@main
+    with:
+      environment: prod
+      artifact-name: notify-functions
+      package-path: ./publish
+      functions-app: ${{ needs.resolve-prod.outputs.functions-app }}
+      resource-group: ${{ needs.resolve-prod.outputs.resource-group }}
+      azure-client-id: ${{ needs.resolve-prod.outputs.azure-client-id }}
+      azure-tenant-id: ${{ needs.resolve-prod.outputs.azure-tenant-id }}
+      azure-subscription-id: ${{ needs.resolve-prod.outputs.azure-subscription-id }}
+      keyvault-name: ${{ needs.resolve-prod.outputs.keyvault-name }}
+      keyvault-secrets: |
+        Resend--ApiKey
+        Twilio--AccountSid
+        Twilio--AuthToken
+        Smtp--Username
+        Smtp--Password
+        NotifyQueueConnection
       health-check-url: /api/health
