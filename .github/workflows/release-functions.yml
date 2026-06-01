@@ -187,6 +187,12 @@ jobs:
   # ======================= PROD (gated; needs staging) =====================
   resolve-prod:
     name: Resolve prod config
+    # needs: deploy-staging so the prod Environment gate (required reviewers)
+    # can't be reached until staging succeeds — the approval pause happens AFTER
+    # staging, not in parallel with it. (Both resolve-prod and the deploy enter
+    # the prod environment; collapsing to a single approval is a prod-provisioning
+    # follow-up.)
+    needs: deploy-staging
     if: ${{ github.event_name == 'push' && startsWith(github.ref, 'refs/tags/') }}
     runs-on: ubuntu-latest
     environment: prod
@@ -216,7 +222,7 @@ jobs:
     # workflow's inner deploy job runs under `environment: prod` — whose
     # required-reviewers rule PAUSES the run until a human approves. Reuses the
     # SAME artifact `build` produced (genuine build-once same-artifact promotion).
-    needs: [build, resolve-prod, resolve-staging, deploy-staging]
+    needs: [build, resolve-prod]
     permissions:
       contents: read
       id-token: write
