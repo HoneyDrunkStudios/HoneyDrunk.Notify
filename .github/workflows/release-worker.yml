@@ -1,33 +1,121 @@
 name: Release Notify.Worker
 
-# Tag-triggered release for Notify.Worker.
-# Push a tag like `worker-v0.1.0` to build the container image, push it to
-# the shared ACR, and roll a new revision on ca-hd-notify-worker-<env> via
-# the reusable job-deploy-container-app.yml (ADR-0015 hosting, ADR-0012:
-# deploy logic lives in HoneyDrunk.Actions). The reusable workflow checks
-# out this repo and builds the image itself when build-context is set.
+# Dual-trigger release for Notify.Worker (ADR-0033).
 #
-# Environment scope: dev only, by design. Per the ADR-0015 rollout, this
-# release line deploys to `dev` (env-scoped GitHub vars resolved in the
-# `resolve` job, `environment: dev`). Staging / prod promotion gates are a
-# deliberate follow-up, not part of this workflow. A `worker-v*` tag
-# therefore deploys to dev and nothing else — intentional, not a gap.
+# Two trigger paths, mapped to a target environment in the `classify` job —
+# the single, explicit place trigger intent becomes an environment (D2):
+#
+#   * push to `main`, path-filtered to this deployable's source closure
+#     -> continuous deploy to `dev`. The image is tagged with the commit SHA;
+#     `dev` is disposable and never a promotion source (D1).
+#   * `worker-v*` SemVer tag, unfiltered (path filters are not evaluated for
+#     tag pushes) -> deliberate, versioned promotion. Tags resolve to
+#     `staging`; `prod` is reached via workflow_dispatch (D1). staging/prod
+#     are not provisioned yet; this records the model so it is not re-litigated.
+#   * workflow_dispatch -> manual escape hatch; pick the target environment.
+#
+# Deploy mechanics stay in HoneyDrunk.Actions (ADR-0012, ADR-0015); only
+# trigger policy — inherently per-repo — lives here. The path filter is scoped
+# to Notify.Worker's transitive project closure, so a change to a shared
+# project (Hosting.AspNetCore, core Notify, Abstractions, any Provider)
+# redeploys this line, while a Functions-only change does not (D3/D4).
 
 on:
   push:
+    branches: [main]
+    paths:
+      # Own deployable source (the .Worker .csproj and Dockerfile live here).
+      - 'HoneyDrunk.Notify/HoneyDrunk.Notify.Worker/**'
+      # ProjectReference closure of the Worker binary (Hosting.AspNetCore pulls
+      # in core Notify + Abstractions transitively, so both are in-closure).
+      - 'HoneyDrunk.Notify/HoneyDrunk.Notify.Hosting.AspNetCore/**'
+      - 'HoneyDrunk.Notify/HoneyDrunk.Notify/**'
+      - 'HoneyDrunk.Notify/HoneyDrunk.Notify.Abstractions/**'
+      - 'HoneyDrunk.Notify/HoneyDrunk.Notify.Providers.Email.Resend/**'
+      - 'HoneyDrunk.Notify/HoneyDrunk.Notify.Providers.Email.Smtp/**'
+      - 'HoneyDrunk.Notify/HoneyDrunk.Notify.Providers.Sms.Twilio/**'
+      - 'HoneyDrunk.Notify/HoneyDrunk.Notify.Queue.Abstractions/**'
+      - 'HoneyDrunk.Notify/HoneyDrunk.Notify.Queue.AzureStorage/**'
+      - 'HoneyDrunk.Notify/HoneyDrunk.Notify.Queue.InMemory/**'
+      # Shared *source* (no .csproj; pulled in via <Compile Include>, which a
+      # ProjectReference-only scan misses): HostBootstrap is compiled directly
+      # into Functions & Worker; ProviderSupport is compiled into the Providers
+      # and Queue projects this binary links. A change to either alters the
+      # deployed binary, so both are in-closure and must redeploy on main.
+      - 'HoneyDrunk.Notify/HoneyDrunk.Notify.HostBootstrap/**'
+      - 'HoneyDrunk.Notify/HoneyDrunk.Notify.ProviderSupport/**'
+      # Solution file and the workflow itself.
+      - 'HoneyDrunk.Notify/HoneyDrunk.Notify.slnx'
+      - '.github/workflows/release-worker.yml'
     tags:
       - 'worker-v*'
   workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Target environment for a manual deploy'
+        type: choice
+        options:
+          - dev
+          - staging
+          - prod
+        default: dev
 
 permissions:
   contents: read
   id-token: write
 
 jobs:
-  resolve:
-    name: Resolve dev config
+  classify:
+    name: Classify trigger
     runs-on: ubuntu-latest
-    environment: dev
+    # ADR-0033 D2: the single, explicit place trigger intent is mapped to a
+    # target environment. resolve/deploy consume these outputs; the environment
+    # is never inferred implicitly from vars.HD_ENV or scattered across jobs.
+    outputs:
+      target-env: ${{ steps.map.outputs.target-env }}
+      image-tag: ${{ steps.map.outputs.image-tag }}
+    steps:
+      - name: Map trigger to environment
+        id: map
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          REF: ${{ github.ref }}
+          REF_NAME: ${{ github.ref_name }}
+          SHA: ${{ github.sha }}
+          DISPATCH_ENV: ${{ inputs.environment }}
+        run: |
+          set -euo pipefail
+          #   push:main (path-filtered) -> dev      (continuous, SHA-identified)
+          #   push:tag  (worker-v*)     -> staging  (promotion; prod via dispatch)
+          #   workflow_dispatch         -> chosen environment input
+          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+            TARGET="$DISPATCH_ENV"
+          elif [[ "$REF" == refs/tags/* ]]; then
+            TARGET="staging"
+          else
+            TARGET="dev"
+          fi
+          case "$TARGET" in
+            dev|staging|prod) ;;
+            *) echo "::error::Unrecognized target environment '$TARGET'"; exit 1 ;;
+          esac
+          # ADR-0033 D1: dev images are SHA-identified (no version stamp);
+          # promotion tags carry the SemVer-shaped ref as the image tag.
+          if [[ "$REF" == refs/tags/* ]]; then
+            IMAGE_TAG="$REF_NAME"
+          else
+            IMAGE_TAG="$SHA"
+          fi
+          echo "target-env=$TARGET" >> "$GITHUB_OUTPUT"
+          echo "image-tag=$IMAGE_TAG" >> "$GITHUB_OUTPUT"
+          echo "Resolved target environment: $TARGET (image tag: $IMAGE_TAG)"
+
+  resolve:
+    name: Resolve ${{ needs.classify.outputs.target-env }} config
+    needs: classify
+    runs-on: ubuntu-latest
+    environment: ${{ needs.classify.outputs.target-env }}
     outputs:
       acr-registry: acrhdshared${{ vars.HD_ENV }}.azurecr.io
       container-app: ca-hd-notify-worker-${{ vars.HD_ENV }}
@@ -39,28 +127,35 @@ jobs:
     steps:
       - name: Echo resolved targets
         run: |
+          echo "Environment   : ${{ needs.classify.outputs.target-env }}"
           echo "Container App : ca-hd-notify-worker-${{ vars.HD_ENV }}"
           echo "Resource Grp  : rg-hd-notify-${{ vars.HD_ENV }}"
           echo "ACR           : acrhdshared${{ vars.HD_ENV }}.azurecr.io"
           echo "Key Vault     : kv-hd-notify-${{ vars.HD_ENV }}"
 
   deploy:
-    name: Deploy to dev
-    needs: resolve
+    name: Deploy to ${{ needs.classify.outputs.target-env }}
+    needs: [classify, resolve]
+    # ADR-0033 D5: concurrency group keyed on the resolved environment, so dev
+    # churn can never cancel a staging/prod promotion (they land in different
+    # groups). Dev supersedes in-flight dev deploys (cancel-in-progress: true);
+    # promotions queue and are never silently cancelled (false).
+    concurrency:
+      group: release-worker-${{ needs.classify.outputs.target-env }}
+      cancel-in-progress: ${{ needs.classify.outputs.target-env == 'dev' }}
     # A reusable-workflow caller job cannot declare `environment:` itself, so
     # the environment is passed through as an input. The reusable workflow's
-    # deploy job runs under `environment: dev`, making the OIDC token subject
-    # repo:HoneyDrunkStudios/HoneyDrunk.Notify:environment:dev — which matches
-    # the environment-scoped federated credential on sp-hd-notify-dev.
-    # `resolve` (also environment: dev) separately supplies env-scoped vars.
+    # deploy job runs under that environment, making the OIDC token subject
+    # repo:HoneyDrunkStudios/HoneyDrunk.Notify:environment:<env> — which
+    # matches the environment-scoped federated credential on sp-hd-notify-<env>.
     uses: HoneyDrunkStudios/HoneyDrunk.Actions/.github/workflows/job-deploy-container-app.yml@main
     with:
-      environment: dev
+      environment: ${{ needs.classify.outputs.target-env }}
       # Dockerfile declares "Build context: HoneyDrunk.Notify/ (solution root)".
       build-context: HoneyDrunk.Notify
       dockerfile: HoneyDrunk.Notify.Worker/Dockerfile
       image-name: honeydrunk-notify-worker
-      image-tag: ${{ github.ref_name }}
+      image-tag: ${{ needs.classify.outputs.image-tag }}
       acr-registry: ${{ needs.resolve.outputs.acr-registry }}
       container-app: ${{ needs.resolve.outputs.container-app }}
       resource-group: ${{ needs.resolve.outputs.resource-group }}

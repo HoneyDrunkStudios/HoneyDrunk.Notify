@@ -1,27 +1,101 @@
 name: Release Notify.Functions
 
-# Tag-triggered release for Notify.Functions.
-# Push a tag like `functions-v0.1.0` to build, publish, and deploy to
-# func-hd-notify-<env> via the reusable job-deploy-function.yml (ADR-0012:
-# deploy logic lives in HoneyDrunk.Actions, never reimplemented here).
+# Dual-trigger release for Notify.Functions (ADR-0033).
 #
-# Environment scope: dev only, by design. Per the ADR-0015 rollout, this
-# release line deploys to `dev` (env-scoped GitHub vars resolved in the
-# `resolve` job, `environment: dev`). Staging / prod promotion gates are a
-# deliberate follow-up, not part of this workflow. A `functions-v*` tag
-# therefore deploys to dev and nothing else — intentional, not a gap.
+# Two trigger paths, mapped to a target environment in the `classify` job —
+# the single, explicit place trigger intent becomes an environment (D2):
+#
+#   * push to `main`, path-filtered to this deployable's source closure
+#     -> continuous deploy to `dev`. The artifact is identified by commit
+#     SHA only; `dev` is disposable and never a promotion source (D1).
+#   * `functions-v*` SemVer tag, unfiltered (path filters are not evaluated
+#     for tag pushes) -> deliberate, versioned promotion. Tags resolve to
+#     `staging`; `prod` is reached via workflow_dispatch (D1). staging/prod
+#     are not provisioned yet; this records the model so it is not re-litigated.
+#   * workflow_dispatch -> manual escape hatch; pick the target environment.
+#
+# Deploy mechanics stay in HoneyDrunk.Actions (ADR-0012); only trigger policy
+# — inherently per-repo — lives here. The path filter is scoped to
+# Notify.Functions' transitive project closure, so a change to a shared
+# project (core Notify, Abstractions, Hosting.AspNetCore, any Provider)
+# redeploys this line, while a Worker-only change (Queue.*) does not (D3/D4).
 
 on:
   push:
+    branches: [main]
+    paths:
+      # Own deployable source (the .Functions .csproj is covered by this glob).
+      - 'HoneyDrunk.Notify/HoneyDrunk.Notify.Functions/**'
+      # ProjectReference closure of the Functions binary.
+      - 'HoneyDrunk.Notify/HoneyDrunk.Notify/**'
+      - 'HoneyDrunk.Notify/HoneyDrunk.Notify.Abstractions/**'
+      - 'HoneyDrunk.Notify/HoneyDrunk.Notify.Hosting.AspNetCore/**'
+      - 'HoneyDrunk.Notify/HoneyDrunk.Notify.Providers.Email.Resend/**'
+      - 'HoneyDrunk.Notify/HoneyDrunk.Notify.Providers.Email.Smtp/**'
+      - 'HoneyDrunk.Notify/HoneyDrunk.Notify.Providers.Sms.Twilio/**'
+      # Shared *source* (no .csproj; pulled in via <Compile Include>, which a
+      # ProjectReference-only scan misses): HostBootstrap is compiled directly
+      # into Functions & Worker; ProviderSupport is compiled into the Providers
+      # this binary links. A change to either alters the deployed binary, so
+      # both are in-closure and must redeploy on main.
+      - 'HoneyDrunk.Notify/HoneyDrunk.Notify.HostBootstrap/**'
+      - 'HoneyDrunk.Notify/HoneyDrunk.Notify.ProviderSupport/**'
+      # Solution file and the workflow itself.
+      - 'HoneyDrunk.Notify/HoneyDrunk.Notify.slnx'
+      - '.github/workflows/release-functions.yml'
     tags:
       - 'functions-v*'
   workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Target environment for a manual deploy'
+        type: choice
+        options:
+          - dev
+          - staging
+          - prod
+        default: dev
 
 permissions:
   contents: read
   id-token: write
 
 jobs:
+  classify:
+    name: Classify trigger
+    runs-on: ubuntu-latest
+    # ADR-0033 D2: the single, explicit place trigger intent is mapped to a
+    # target environment. resolve/deploy consume this output; the environment
+    # is never inferred implicitly from vars.HD_ENV or scattered across jobs.
+    outputs:
+      target-env: ${{ steps.map.outputs.target-env }}
+    steps:
+      - name: Map trigger to environment
+        id: map
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          REF: ${{ github.ref }}
+          DISPATCH_ENV: ${{ inputs.environment }}
+        run: |
+          set -euo pipefail
+          #   push:main (path-filtered) -> dev      (continuous, SHA-identified)
+          #   push:tag  (functions-v*)  -> staging  (promotion; prod via dispatch)
+          #   workflow_dispatch         -> chosen environment input
+          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+            TARGET="$DISPATCH_ENV"
+          elif [[ "$REF" == refs/tags/* ]]; then
+            TARGET="staging"
+          else
+            TARGET="dev"
+          fi
+          case "$TARGET" in
+            dev|staging|prod) ;;
+            *) echo "::error::Unrecognized target environment '$TARGET'"; exit 1 ;;
+          esac
+          echo "target-env=$TARGET" >> "$GITHUB_OUTPUT"
+          echo "Resolved target environment: $TARGET"
+
   build:
     name: Build Function App
     permissions:
@@ -37,12 +111,13 @@ jobs:
       artifact-name: notify-functions
 
   resolve:
-    name: Resolve dev config
-    # No `needs: build` — resolve consumes no build output or artifact (only the
-    # `deploy` job needs the artifact). Running resolve in parallel with build
-    # avoids serializing var resolution behind restore/build/test/publish.
+    name: Resolve ${{ needs.classify.outputs.target-env }} config
+    needs: classify
+    # No artifact dependency on `build` — resolve only emits env-scoped names,
+    # so it runs in parallel with build. It needs `classify` to know which
+    # environment's GitHub vars to read.
     runs-on: ubuntu-latest
-    environment: dev
+    environment: ${{ needs.classify.outputs.target-env }}
     outputs:
       functions-app: func-hd-notify-${{ vars.HD_ENV }}
       resource-group: rg-hd-notify-${{ vars.HD_ENV }}
@@ -53,22 +128,29 @@ jobs:
     steps:
       - name: Echo resolved targets
         run: |
+          echo "Environment  : ${{ needs.classify.outputs.target-env }}"
           echo "Function App : func-hd-notify-${{ vars.HD_ENV }}"
           echo "Resource Grp : rg-hd-notify-${{ vars.HD_ENV }}"
           echo "Key Vault    : kv-hd-notify-${{ vars.HD_ENV }}"
 
   deploy:
-    name: Deploy to dev
-    needs: [build, resolve]
+    name: Deploy to ${{ needs.classify.outputs.target-env }}
+    needs: [classify, build, resolve]
+    # ADR-0033 D5: concurrency group keyed on the resolved environment, so dev
+    # churn can never cancel a staging/prod promotion (they land in different
+    # groups). Dev supersedes in-flight dev deploys (cancel-in-progress: true);
+    # promotions queue and are never silently cancelled (false).
+    concurrency:
+      group: release-functions-${{ needs.classify.outputs.target-env }}
+      cancel-in-progress: ${{ needs.classify.outputs.target-env == 'dev' }}
     # A reusable-workflow caller job cannot declare `environment:` itself, so
     # the environment is passed through as an input. The reusable workflow's
-    # deploy job runs under `environment: dev`, making the OIDC token subject
-    # repo:HoneyDrunkStudios/HoneyDrunk.Notify:environment:dev — which matches
-    # the environment-scoped federated credential on sp-hd-notify-dev.
-    # `resolve` (also environment: dev) separately supplies env-scoped vars.
+    # deploy job runs under that environment, making the OIDC token subject
+    # repo:HoneyDrunkStudios/HoneyDrunk.Notify:environment:<env> — which
+    # matches the environment-scoped federated credential on sp-hd-notify-<env>.
     uses: HoneyDrunkStudios/HoneyDrunk.Actions/.github/workflows/job-deploy-function.yml@main
     with:
-      environment: dev
+      environment: ${{ needs.classify.outputs.target-env }}
       artifact-name: notify-functions
       package-path: ./publish
       functions-app: ${{ needs.resolve.outputs.functions-app }}
