@@ -1,24 +1,29 @@
 name: Release Notify.Worker
 
-# Dual-trigger release for Notify.Worker (ADR-0033).
+# Staged release for Notify.Worker (ADR-0033, staged-promotion amendment).
 #
-# Two trigger paths, mapped to a target environment in the `classify` job —
-# the single, explicit place trigger intent becomes an environment (D2):
+# Three deploy paths, each its own job under a static GitHub Environment:
 #
-#   * push to `main`, path-filtered to this deployable's source closure
-#     -> continuous deploy to `dev`. The image is tagged with the commit SHA;
-#     `dev` is disposable and never a promotion source (D1).
-#   * `worker-v*` SemVer tag, unfiltered (path filters are not evaluated for
-#     tag pushes) -> deliberate, versioned promotion. Tags resolve to
-#     `staging`; `prod` is reached via workflow_dispatch (D1). staging/prod
-#     are not provisioned yet; this records the model so it is not re-litigated.
-#   * workflow_dispatch -> manual escape hatch; pick the target environment.
+#   * push to `main`, path-filtered  -> deploy-dev (continuous; image dev-<sha>)
+#   * `worker-v*` SemVer tag         -> deploy-staging, then deploy-prod
+#   * workflow_dispatch              -> deploy-dev (manual escape hatch)
+#
+# Staged promotion (ADO-style): a tag push deploys to staging automatically,
+# then deploy-prod (needs: deploy-staging) is gated by the `prod` GitHub
+# Environment's required-reviewers rule — it queues after staging succeeds and
+# PAUSES until a human approves, then rolls prod. The gate is configured on the
+# prod Environment in repo settings (not in YAML) when prod is provisioned;
+# until then the staging/prod jobs only run on a tag and fail fast if the
+# environment's vars are unset.
+#
+# Image promotion: staging and prod each build the SemVer-tagged image from the
+# tagged source into their own per-env registry (acrhdshared<env>). Literal
+# build-once same-artifact promotion is deferred pending a registry-topology
+# decision (shared cross-env registry or `az acr import`).
 #
 # Deploy mechanics stay in HoneyDrunk.Actions (ADR-0012, ADR-0015); only
-# trigger policy — inherently per-repo — lives here. The path filter is scoped
-# to Notify.Worker's transitive project closure, so a change to a shared
-# project (Hosting.AspNetCore, core Notify, Abstractions, any Provider)
-# redeploys this line, while a Functions-only change does not (D3/D4).
+# trigger/stage policy — inherently per-repo — lives here. Path filters are not
+# evaluated for tag pushes, so the tag trigger stays unfiltered.
 
 on:
   push:
@@ -53,74 +58,19 @@ on:
     tags:
       - 'worker-v*'
   workflow_dispatch:
-    inputs:
-      environment:
-        description: 'Target environment for a manual deploy'
-        type: choice
-        options:
-          - dev
-          - staging
-          - prod
-        default: dev
 
-# id-token: write is granted per-job (deploy only) for least privilege; the
-# workflow default stays read-only.
+# id-token: write is granted per deploy job (least privilege); the workflow
+# default stays read-only.
 permissions:
   contents: read
 
 jobs:
-  classify:
-    name: Classify trigger
+  # ============================ DEV (continuous) ============================
+  resolve-dev:
+    name: Resolve dev config
+    if: ${{ (github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'workflow_dispatch' }}
     runs-on: ubuntu-latest
-    # ADR-0033 D2: the single, explicit place trigger intent is mapped to a
-    # target environment. resolve/deploy consume these outputs; the environment
-    # is never inferred implicitly from vars.HD_ENV or scattered across jobs.
-    outputs:
-      target-env: ${{ steps.map.outputs.target-env }}
-      image-tag: ${{ steps.map.outputs.image-tag }}
-    steps:
-      - name: Map trigger to environment
-        id: map
-        shell: bash
-        env:
-          EVENT_NAME: ${{ github.event_name }}
-          REF: ${{ github.ref }}
-          REF_NAME: ${{ github.ref_name }}
-          SHA: ${{ github.sha }}
-          DISPATCH_ENV: ${{ inputs.environment }}
-        run: |
-          set -euo pipefail
-          #   push:main (path-filtered) -> dev      (continuous, SHA-identified)
-          #   push:tag  (worker-v*)     -> staging  (promotion; prod via dispatch)
-          #   workflow_dispatch         -> chosen environment input
-          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
-            TARGET="$DISPATCH_ENV"
-          elif [[ "$REF" == refs/tags/* ]]; then
-            TARGET="staging"
-          else
-            TARGET="dev"
-          fi
-          case "$TARGET" in
-            dev|staging|prod) ;;
-            *) echo "::error::Unrecognized target environment '$TARGET'"; exit 1 ;;
-          esac
-          # ADR-0033 D1: dev images are SHA-identified (no version stamp), tagged
-          # dev-<sha> so ACR artifacts stay distinguishable as dev builds;
-          # promotion tags carry the SemVer-shaped ref as the image tag.
-          if [[ "$REF" == refs/tags/* ]]; then
-            IMAGE_TAG="$REF_NAME"
-          else
-            IMAGE_TAG="dev-$SHA"
-          fi
-          echo "target-env=$TARGET" >> "$GITHUB_OUTPUT"
-          echo "image-tag=$IMAGE_TAG" >> "$GITHUB_OUTPUT"
-          echo "Resolved target environment: $TARGET (image tag: $IMAGE_TAG)"
-
-  resolve:
-    name: Resolve ${{ needs.classify.outputs.target-env }} config
-    needs: classify
-    runs-on: ubuntu-latest
-    environment: ${{ needs.classify.outputs.target-env }}
+    environment: dev
     outputs:
       acr-registry: acrhdshared${{ vars.HD_ENV }}.azurecr.io
       container-app: ca-hd-notify-worker-${{ vars.HD_ENV }}
@@ -130,48 +80,43 @@ jobs:
       azure-tenant-id: ${{ vars.AZURE_TENANT_ID }}
       azure-subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
     steps:
-      - name: Echo resolved targets
+      - name: Validate environment vars
+        env:
+          HD_ENV: ${{ vars.HD_ENV }}
         run: |
-          echo "Environment   : ${{ needs.classify.outputs.target-env }}"
-          echo "Container App : ca-hd-notify-worker-${{ vars.HD_ENV }}"
-          echo "Resource Grp  : rg-hd-notify-${{ vars.HD_ENV }}"
-          echo "ACR           : acrhdshared${{ vars.HD_ENV }}.azurecr.io"
-          echo "Key Vault     : kv-hd-notify-${{ vars.HD_ENV }}"
+          set -euo pipefail
+          if [ -z "$HD_ENV" ]; then
+            echo "::error::vars.HD_ENV is empty for environment 'dev' — is it provisioned/configured?"
+            exit 1
+          fi
+          echo "Environment   : dev"
+          echo "Container App : ca-hd-notify-worker-$HD_ENV"
 
-  deploy:
-    name: Deploy to ${{ needs.classify.outputs.target-env }}
-    needs: [classify, resolve]
-    # Only this job authenticates to Azure via OIDC, so id-token lives here.
+  deploy-dev:
+    name: Deploy to dev
+    needs: resolve-dev
     permissions:
       contents: read
       id-token: write
-    # ADR-0033 D5: concurrency group keyed on the resolved environment, so dev
-    # churn can never cancel a staging/prod promotion (they land in different
-    # groups). Dev supersedes in-flight dev deploys (cancel-in-progress: true);
-    # promotions queue and are never silently cancelled (false).
+    # Latest main supersedes in-flight dev deploys.
     concurrency:
-      group: release-worker-${{ needs.classify.outputs.target-env }}
-      cancel-in-progress: ${{ needs.classify.outputs.target-env == 'dev' }}
-    # A reusable-workflow caller job cannot declare `environment:` itself, so
-    # the environment is passed through as an input. The reusable workflow's
-    # deploy job runs under that environment, making the OIDC token subject
-    # repo:HoneyDrunkStudios/HoneyDrunk.Notify:environment:<env> — which
-    # matches the environment-scoped federated credential on sp-hd-notify-<env>.
+      group: release-worker-dev
+      cancel-in-progress: true
     uses: HoneyDrunkStudios/HoneyDrunk.Actions/.github/workflows/job-deploy-container-app.yml@main
     with:
-      environment: ${{ needs.classify.outputs.target-env }}
-      # Dockerfile declares "Build context: HoneyDrunk.Notify/ (solution root)".
+      environment: dev
       build-context: HoneyDrunk.Notify
       dockerfile: HoneyDrunk.Notify.Worker/Dockerfile
       image-name: honeydrunk-notify-worker
-      image-tag: ${{ needs.classify.outputs.image-tag }}
-      acr-registry: ${{ needs.resolve.outputs.acr-registry }}
-      container-app: ${{ needs.resolve.outputs.container-app }}
-      resource-group: ${{ needs.resolve.outputs.resource-group }}
-      azure-client-id: ${{ needs.resolve.outputs.azure-client-id }}
-      azure-tenant-id: ${{ needs.resolve.outputs.azure-tenant-id }}
-      azure-subscription-id: ${{ needs.resolve.outputs.azure-subscription-id }}
-      keyvault-name: ${{ needs.resolve.outputs.keyvault-name }}
+      # Dev images are SHA-identified (no version stamp), tagged dev-<sha>.
+      image-tag: dev-${{ github.sha }}
+      acr-registry: ${{ needs.resolve-dev.outputs.acr-registry }}
+      container-app: ${{ needs.resolve-dev.outputs.container-app }}
+      resource-group: ${{ needs.resolve-dev.outputs.resource-group }}
+      azure-client-id: ${{ needs.resolve-dev.outputs.azure-client-id }}
+      azure-tenant-id: ${{ needs.resolve-dev.outputs.azure-tenant-id }}
+      azure-subscription-id: ${{ needs.resolve-dev.outputs.azure-subscription-id }}
+      keyvault-name: ${{ needs.resolve-dev.outputs.keyvault-name }}
       keyvault-secrets: |
         Resend--ApiKey
         Twilio--AccountSid
@@ -180,8 +125,130 @@ jobs:
         Smtp--Password
         NotifyQueueConnection
       traffic-shift-mode: full
-      # Probe /health (liveness): a 200 confirms the revision started, DI built,
-      # and Vault bootstrap succeeded. Dependency-free on purpose so a transient
-      # downstream blip doesn't fail an otherwise-good deploy. Deeper readiness
-      # (aggregated contributors) is on /health/ready for monitoring, not the gate.
+      health-check-url: /health
+
+  # ============================ STAGING (tag) ==============================
+  resolve-staging:
+    name: Resolve staging config
+    if: ${{ github.event_name == 'push' && startsWith(github.ref, 'refs/tags/') }}
+    runs-on: ubuntu-latest
+    environment: staging
+    outputs:
+      acr-registry: acrhdshared${{ vars.HD_ENV }}.azurecr.io
+      container-app: ca-hd-notify-worker-${{ vars.HD_ENV }}
+      resource-group: rg-hd-notify-${{ vars.HD_ENV }}
+      keyvault-name: kv-hd-notify-${{ vars.HD_ENV }}
+      azure-client-id: ${{ vars.AZURE_CLIENT_ID }}
+      azure-tenant-id: ${{ vars.AZURE_TENANT_ID }}
+      azure-subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+    steps:
+      - name: Validate environment vars
+        env:
+          HD_ENV: ${{ vars.HD_ENV }}
+        run: |
+          set -euo pipefail
+          if [ -z "$HD_ENV" ]; then
+            echo "::error::vars.HD_ENV is empty for environment 'staging' — not provisioned yet?"
+            exit 1
+          fi
+          echo "Environment   : staging"
+          echo "Container App : ca-hd-notify-worker-$HD_ENV"
+
+  deploy-staging:
+    name: Deploy to staging
+    needs: resolve-staging
+    permissions:
+      contents: read
+      id-token: write
+    # Promotions queue; never cancel a versioned promotion.
+    concurrency:
+      group: release-worker-staging
+      cancel-in-progress: false
+    uses: HoneyDrunkStudios/HoneyDrunk.Actions/.github/workflows/job-deploy-container-app.yml@main
+    with:
+      environment: staging
+      build-context: HoneyDrunk.Notify
+      dockerfile: HoneyDrunk.Notify.Worker/Dockerfile
+      image-name: honeydrunk-notify-worker
+      # SemVer tag is the version-of-record; the image carries it verbatim.
+      image-tag: ${{ github.ref_name }}
+      acr-registry: ${{ needs.resolve-staging.outputs.acr-registry }}
+      container-app: ${{ needs.resolve-staging.outputs.container-app }}
+      resource-group: ${{ needs.resolve-staging.outputs.resource-group }}
+      azure-client-id: ${{ needs.resolve-staging.outputs.azure-client-id }}
+      azure-tenant-id: ${{ needs.resolve-staging.outputs.azure-tenant-id }}
+      azure-subscription-id: ${{ needs.resolve-staging.outputs.azure-subscription-id }}
+      keyvault-name: ${{ needs.resolve-staging.outputs.keyvault-name }}
+      keyvault-secrets: |
+        Resend--ApiKey
+        Twilio--AccountSid
+        Twilio--AuthToken
+        Smtp--Username
+        Smtp--Password
+        NotifyQueueConnection
+      traffic-shift-mode: full
+      health-check-url: /health
+
+  # ======================= PROD (gated; needs staging) =====================
+  resolve-prod:
+    name: Resolve prod config
+    if: ${{ github.event_name == 'push' && startsWith(github.ref, 'refs/tags/') }}
+    runs-on: ubuntu-latest
+    environment: prod
+    outputs:
+      acr-registry: acrhdshared${{ vars.HD_ENV }}.azurecr.io
+      container-app: ca-hd-notify-worker-${{ vars.HD_ENV }}
+      resource-group: rg-hd-notify-${{ vars.HD_ENV }}
+      keyvault-name: kv-hd-notify-${{ vars.HD_ENV }}
+      azure-client-id: ${{ vars.AZURE_CLIENT_ID }}
+      azure-tenant-id: ${{ vars.AZURE_TENANT_ID }}
+      azure-subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+    steps:
+      - name: Validate environment vars
+        env:
+          HD_ENV: ${{ vars.HD_ENV }}
+        run: |
+          set -euo pipefail
+          if [ -z "$HD_ENV" ]; then
+            echo "::error::vars.HD_ENV is empty for environment 'prod' — not provisioned yet?"
+            exit 1
+          fi
+          echo "Environment   : prod"
+          echo "Container App : ca-hd-notify-worker-$HD_ENV"
+
+  deploy-prod:
+    name: Deploy to prod
+    # The staged gate: prod runs only after staging succeeds, and the reusable
+    # workflow's inner deploy job runs under `environment: prod` — whose
+    # required-reviewers rule PAUSES the run until a human approves. Same SemVer
+    # tag rebuilt into the prod registry (see header note on same-artifact).
+    needs: [resolve-prod, resolve-staging, deploy-staging]
+    permissions:
+      contents: read
+      id-token: write
+    concurrency:
+      group: release-worker-prod
+      cancel-in-progress: false
+    uses: HoneyDrunkStudios/HoneyDrunk.Actions/.github/workflows/job-deploy-container-app.yml@main
+    with:
+      environment: prod
+      build-context: HoneyDrunk.Notify
+      dockerfile: HoneyDrunk.Notify.Worker/Dockerfile
+      image-name: honeydrunk-notify-worker
+      image-tag: ${{ github.ref_name }}
+      acr-registry: ${{ needs.resolve-prod.outputs.acr-registry }}
+      container-app: ${{ needs.resolve-prod.outputs.container-app }}
+      resource-group: ${{ needs.resolve-prod.outputs.resource-group }}
+      azure-client-id: ${{ needs.resolve-prod.outputs.azure-client-id }}
+      azure-tenant-id: ${{ needs.resolve-prod.outputs.azure-tenant-id }}
+      azure-subscription-id: ${{ needs.resolve-prod.outputs.azure-subscription-id }}
+      keyvault-name: ${{ needs.resolve-prod.outputs.keyvault-name }}
+      keyvault-secrets: |
+        Resend--ApiKey
+        Twilio--AccountSid
+        Twilio--AuthToken
+        Smtp--Username
+        Smtp--Password
+        NotifyQueueConnection
+      traffic-shift-mode: full
       health-check-url: /health
