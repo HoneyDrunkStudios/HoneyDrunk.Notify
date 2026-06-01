@@ -44,8 +44,11 @@ on:
       # deployed binary, so both are in-closure and must redeploy on main.
       - 'HoneyDrunk.Notify/HoneyDrunk.Notify.HostBootstrap/**'
       - 'HoneyDrunk.Notify/HoneyDrunk.Notify.ProviderSupport/**'
-      # Solution file and the workflow itself.
+      # Solution file, NuGet restore config, Docker ignore rules, and the
+      # workflow itself — all affect the built image.
       - 'HoneyDrunk.Notify/HoneyDrunk.Notify.slnx'
+      - 'HoneyDrunk.Notify/NuGet.config'
+      - 'HoneyDrunk.Notify/.dockerignore'
       - '.github/workflows/release-worker.yml'
     tags:
       - 'worker-v*'
@@ -60,9 +63,10 @@ on:
           - prod
         default: dev
 
+# id-token: write is granted per-job (deploy only) for least privilege; the
+# workflow default stays read-only.
 permissions:
   contents: read
-  id-token: write
 
 jobs:
   classify:
@@ -100,12 +104,13 @@ jobs:
             dev|staging|prod) ;;
             *) echo "::error::Unrecognized target environment '$TARGET'"; exit 1 ;;
           esac
-          # ADR-0033 D1: dev images are SHA-identified (no version stamp);
+          # ADR-0033 D1: dev images are SHA-identified (no version stamp), tagged
+          # dev-<sha> so ACR artifacts stay distinguishable as dev builds;
           # promotion tags carry the SemVer-shaped ref as the image tag.
           if [[ "$REF" == refs/tags/* ]]; then
             IMAGE_TAG="$REF_NAME"
           else
-            IMAGE_TAG="$SHA"
+            IMAGE_TAG="dev-$SHA"
           fi
           echo "target-env=$TARGET" >> "$GITHUB_OUTPUT"
           echo "image-tag=$IMAGE_TAG" >> "$GITHUB_OUTPUT"
@@ -136,6 +141,10 @@ jobs:
   deploy:
     name: Deploy to ${{ needs.classify.outputs.target-env }}
     needs: [classify, resolve]
+    # Only this job authenticates to Azure via OIDC, so id-token lives here.
+    permissions:
+      contents: read
+      id-token: write
     # ADR-0033 D5: concurrency group keyed on the resolved environment, so dev
     # churn can never cancel a staging/prod promotion (they land in different
     # groups). Dev supersedes in-flight dev deploys (cancel-in-progress: true);

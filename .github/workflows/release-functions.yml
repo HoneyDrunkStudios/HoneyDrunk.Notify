@@ -40,8 +40,10 @@ on:
       # both are in-closure and must redeploy on main.
       - 'HoneyDrunk.Notify/HoneyDrunk.Notify.HostBootstrap/**'
       - 'HoneyDrunk.Notify/HoneyDrunk.Notify.ProviderSupport/**'
-      # Solution file and the workflow itself.
+      # Solution file, NuGet restore config, and the workflow itself — all
+      # affect the published artifact.
       - 'HoneyDrunk.Notify/HoneyDrunk.Notify.slnx'
+      - 'HoneyDrunk.Notify/NuGet.config'
       - '.github/workflows/release-functions.yml'
     tags:
       - 'functions-v*'
@@ -56,9 +58,10 @@ on:
           - prod
         default: dev
 
+# id-token: write is granted per-job (deploy only) for least privilege; the
+# workflow default stays read-only.
 permissions:
   contents: read
-  id-token: write
 
 jobs:
   classify:
@@ -136,6 +139,10 @@ jobs:
   deploy:
     name: Deploy to ${{ needs.classify.outputs.target-env }}
     needs: [classify, build, resolve]
+    # Only this job authenticates to Azure via OIDC, so id-token lives here.
+    permissions:
+      contents: read
+      id-token: write
     # ADR-0033 D5: concurrency group keyed on the resolved environment, so dev
     # churn can never cancel a staging/prod promotion (they land in different
     # groups). Dev supersedes in-flight dev deploys (cancel-in-progress: true);
