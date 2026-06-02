@@ -1,5 +1,13 @@
 name: Release Notify.Worker
 
+# STANDBY — Notify.Worker is retained in-repo but kept dark: auto-deploy
+# triggers are disabled (manual workflow_dispatch only) and it runs no replicas
+# in Azure (revisions deactivated). Notify.Functions is the active notify-queue
+# dispatcher; the Worker duplicated that dispatch, so it's parked rather than
+# paid for. It stays a ready-to-reactivate deploy line for a future distinct
+# bulk / class-of-service lane (its own queue). See the ADR-0015 note.
+#
+# ---- The staged model below applies WHEN reactivated ----
 # Staged release for Notify.Worker (ADR-0033, staged-promotion amendment).
 #
 # Three deploy paths, each its own job under a static GitHub Environment:
@@ -26,38 +34,38 @@ name: Release Notify.Worker
 # evaluated for tag pushes, so the tag trigger stays unfiltered.
 
 on:
-  push:
-    branches: [main]
-    paths:
-      # Own deployable source (the .Worker .csproj and Dockerfile live here).
-      - 'HoneyDrunk.Notify/HoneyDrunk.Notify.Worker/**'
-      # ProjectReference closure of the Worker binary (Hosting.AspNetCore pulls
-      # in core Notify + Abstractions transitively, so both are in-closure).
-      - 'HoneyDrunk.Notify/HoneyDrunk.Notify.Hosting.AspNetCore/**'
-      - 'HoneyDrunk.Notify/HoneyDrunk.Notify/**'
-      - 'HoneyDrunk.Notify/HoneyDrunk.Notify.Abstractions/**'
-      - 'HoneyDrunk.Notify/HoneyDrunk.Notify.Providers.Email.Resend/**'
-      - 'HoneyDrunk.Notify/HoneyDrunk.Notify.Providers.Email.Smtp/**'
-      - 'HoneyDrunk.Notify/HoneyDrunk.Notify.Providers.Sms.Twilio/**'
-      - 'HoneyDrunk.Notify/HoneyDrunk.Notify.Queue.Abstractions/**'
-      - 'HoneyDrunk.Notify/HoneyDrunk.Notify.Queue.AzureStorage/**'
-      - 'HoneyDrunk.Notify/HoneyDrunk.Notify.Queue.InMemory/**'
-      # Shared *source* (no .csproj; pulled in via <Compile Include>, which a
-      # ProjectReference-only scan misses): HostBootstrap is compiled directly
-      # into Functions & Worker; ProviderSupport is compiled into the Providers
-      # and Queue projects this binary links. A change to either alters the
-      # deployed binary, so both are in-closure and must redeploy on main.
-      - 'HoneyDrunk.Notify/HoneyDrunk.Notify.HostBootstrap/**'
-      - 'HoneyDrunk.Notify/HoneyDrunk.Notify.ProviderSupport/**'
-      # Solution file, NuGet restore config, Docker ignore rules, and the
-      # workflow itself — all affect the built image.
-      - 'HoneyDrunk.Notify/HoneyDrunk.Notify.slnx'
-      - 'HoneyDrunk.Notify/NuGet.config'
-      - 'HoneyDrunk.Notify/.dockerignore'
-      - '.github/workflows/release-worker.yml'
-    tags:
-      - 'worker-v*'
+  # STANDBY: auto-deploy is disabled. Only manual dispatch is wired so the
+  # Worker never auto-deploys or wakes (Notify.Functions is the active
+  # dispatcher). To REACTIVATE as a deploy line, uncomment the push block below
+  # — the full path-filter closure is preserved verbatim.
   workflow_dispatch:
+  # push:
+  #   branches: [main]
+  #   paths:
+  #     # Own deployable source (the .Worker .csproj and Dockerfile live here).
+  #     - 'HoneyDrunk.Notify/HoneyDrunk.Notify.Worker/**'
+  #     # ProjectReference closure (Hosting.AspNetCore pulls in core Notify +
+  #     # Abstractions transitively, so both are in-closure).
+  #     - 'HoneyDrunk.Notify/HoneyDrunk.Notify.Hosting.AspNetCore/**'
+  #     - 'HoneyDrunk.Notify/HoneyDrunk.Notify/**'
+  #     - 'HoneyDrunk.Notify/HoneyDrunk.Notify.Abstractions/**'
+  #     - 'HoneyDrunk.Notify/HoneyDrunk.Notify.Providers.Email.Resend/**'
+  #     - 'HoneyDrunk.Notify/HoneyDrunk.Notify.Providers.Email.Smtp/**'
+  #     - 'HoneyDrunk.Notify/HoneyDrunk.Notify.Providers.Sms.Twilio/**'
+  #     - 'HoneyDrunk.Notify/HoneyDrunk.Notify.Queue.Abstractions/**'
+  #     - 'HoneyDrunk.Notify/HoneyDrunk.Notify.Queue.AzureStorage/**'
+  #     - 'HoneyDrunk.Notify/HoneyDrunk.Notify.Queue.InMemory/**'
+  #     # Shared *source* (no .csproj; pulled in via <Compile Include>):
+  #     # HostBootstrap -> Functions & Worker; ProviderSupport -> Providers/Queue.
+  #     - 'HoneyDrunk.Notify/HoneyDrunk.Notify.HostBootstrap/**'
+  #     - 'HoneyDrunk.Notify/HoneyDrunk.Notify.ProviderSupport/**'
+  #     # Solution file, NuGet restore config, Docker ignore rules, workflow.
+  #     - 'HoneyDrunk.Notify/HoneyDrunk.Notify.slnx'
+  #     - 'HoneyDrunk.Notify/NuGet.config'
+  #     - 'HoneyDrunk.Notify/.dockerignore'
+  #     - '.github/workflows/release-worker.yml'
+  #   tags:
+  #     - 'worker-v*'
 
 # id-token: write is granted per deploy job (least privilege); the workflow
 # default stays read-only.
