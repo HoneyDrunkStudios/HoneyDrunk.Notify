@@ -20,6 +20,16 @@ using Microsoft.Extensions.Hosting;
 using GridEnvironments = HoneyDrunk.Kernel.Abstractions.Environments;
 
 var builder = FunctionsApplication.CreateBuilder(args);
+
+// FunctionsApplication.CreateBuilder — unlike WebApplicationBuilder — does not register
+// builder.Configuration as an IConfiguration *instance* in the service collection. The Vault
+// App Configuration bootstrap (AddAppConfiguration) resolves IConfiguration from the service
+// collection and requires the mutable ConfigurationManager so it can append the Azure App
+// Configuration source to the live pipeline; without this it falls back to an immutable
+// env-vars-only configuration and throws. Register the manager explicitly so the bootstrap
+// finds it (the isolated worker otherwise aborts at startup with exit code 134 / SIGABRT).
+builder.Services.AddSingleton<IConfiguration>(builder.Configuration);
+
 var notifyNodeId = NotifyNodeIdentity.ResolveNodeId(builder.Configuration);
 
 builder.Services
