@@ -1,3 +1,4 @@
+using HoneyDrunk.Kernel.Abstractions.Context;
 using HoneyDrunk.Notify.Abstractions;
 using HoneyDrunk.Notify.Abstractions.Models.Email;
 using HoneyDrunk.Notify.Diagnostics;
@@ -19,7 +20,8 @@ internal sealed partial class NotificationGateway(
     INotificationEnqueuer enqueuer,
     IIdempotencyStore idempotencyStore,
     IEmailTemplateRenderer emailTemplateRenderer,
-    ILogger<NotificationGateway> logger) : INotificationGateway
+    ILogger<NotificationGateway> logger,
+    IGridContextAccessor? gridContextAccessor = null) : INotificationGateway
 #pragma warning restore CA1812
 {
     /// <inheritdoc />
@@ -83,6 +85,7 @@ internal sealed partial class NotificationGateway(
             }
         }
 
+        var gridContext = TryGetGridContext(gridContextAccessor);
         var envelope = new NotificationEnvelope(
             notificationId,
             effectiveRequest.Channel,
@@ -90,7 +93,11 @@ internal sealed partial class NotificationGateway(
             effectiveRequest.TemplateKey,
             effectiveRequest.Model)
         {
-            CorrelationId = Activity.Current?.Id,
+            CorrelationId = gridContext?.CorrelationId ?? Activity.Current?.Id,
+            CausationId = gridContext?.CausationId,
+            NodeId = gridContext?.NodeId,
+            TenantId = gridContext?.TenantId.ToString(),
+            Environment = gridContext?.Environment,
             Priority = effectiveRequest.Priority,
             Tags = effectiveRequest.Tags,
             IdempotencyKey = effectiveRequest.IdempotencyKey,
@@ -119,6 +126,24 @@ internal sealed partial class NotificationGateway(
             envelope.CorrelationId);
 
         return NotificationOutcome.Accepted(notificationId, now);
+    }
+
+    private static IGridContext? TryGetGridContext(IGridContextAccessor? gridContextAccessor)
+    {
+        if (gridContextAccessor is null)
+        {
+            return null;
+        }
+
+        try
+        {
+            var gridContext = gridContextAccessor.GridContext;
+            return gridContext?.IsInitialized is true ? gridContext : null;
+        }
+        catch (InvalidOperationException)
+        {
+            return null;
+        }
     }
 
     private static string? ValidateRequest(NotificationRequest request)
