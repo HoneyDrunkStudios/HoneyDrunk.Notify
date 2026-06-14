@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- `NotificationGateway` now stamps available Grid context onto accepted notification envelopes (`CorrelationId`, `CausationId`, `NodeId`, `TenantId`, and `Environment`) while preserving standalone Notify hosts that do not register Kernel context accessors.
+
 ## [0.4.0] - 2026-05-27
 
 ### Changed
