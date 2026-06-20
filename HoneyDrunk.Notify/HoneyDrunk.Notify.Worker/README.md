@@ -2,8 +2,9 @@
 
 Standalone ASP.NET Core worker host for HoneyDrunk.Notify. It hosts the Notify
 worker pipeline (queue draining and provider dispatch) plus health and Vault
-cache-invalidation endpoints, using the Azure Storage queue adapter and the
-SMTP / Resend / Twilio providers.
+cache-invalidation endpoints, with a configurable queue adapter
+(`NotifyWorkerOptions.QueueAdapter`, default `InMemory`, or `AzureStorage`) and
+the SMTP / Resend / Twilio providers.
 
 This is a deployable host, not a library; it is not published as a NuGet
 package (`IsPackable=false`). It is currently parked on standby (manual-dispatch

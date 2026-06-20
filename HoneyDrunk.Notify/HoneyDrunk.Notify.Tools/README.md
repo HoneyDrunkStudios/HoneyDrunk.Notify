@@ -21,10 +21,11 @@ Commands:
 - `dlq replay` — move an item from the DLQ back to the main queue
 - `dlq purge` — remove an item from the DLQ permanently
 
-Required options: `--queue <name>`, `--adapter <AzureStorage|InMemory>`, and
-`--connection <string>` (for the AzureStorage adapter). `peek`, `replay`, and
-`purge` also require `--id <notificationId>`. Run with no valid verb to print
-full usage. Example:
+Required options: `--queue <name>` and `--connection <string>` (for the
+AzureStorage adapter). `--adapter <AzureStorage|InMemory>` is optional and
+defaults to `AzureStorage` when omitted. `peek`, `replay`, and `purge` also
+require `--id <notificationId>`. Run with no valid verb to print full usage.
+Example:
 
 ```sh
 dotnet run --project HoneyDrunk.Notify/HoneyDrunk.Notify.Tools -- \

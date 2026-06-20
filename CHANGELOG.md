@@ -5,7 +5,7 @@ All notable changes to HoneyDrunk.Notify are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## Unreleased
+## [Unreleased]
 
 ### Added
 
@@ -15,7 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `NotificationGateway` now stamps available Grid context (`CorrelationId`, `CausationId`, `NodeId`, `TenantId`, `Environment`) onto accepted notification envelopes while preserving standalone hosts without Kernel context accessors.
 
-## 0.4.0 - Sonar and SAST cleanup
+## [0.4.0] - 2026-05-27
 
 ### Changed
 
@@ -28,14 +28,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Refreshed HoneyDrunk.Standards to 0.2.9 and the Microsoft.Extensions dependency train.
 - Onboarded Notify to SonarQube Cloud and parked Notify.Worker on standby (manual-dispatch only).
 
-## 0.3.0 - Template loader consolidation
+## [0.3.0] - 2026-05-18
 
 ### Changed
 
 - Consolidated file template loading and cache behavior behind a shared template loader.
 - Aligned package versions to 0.3.0.
 
-## 0.2.0 - Intake boundary refactor
+## [0.2.0] - 2026-05-05
 
 ### Changed
 
@@ -43,7 +43,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Moved outbound decision policy out of Notify; Communications now owns those decisions before calling Notify.
 - Flowed non-secret notification defaults from host configuration, including App Configuration label `honeydrunk-notify`.
 
-## 0.1.0 - Initial release
+## [0.1.0] - 2026-01-01
 
 ### Added
 
