@@ -1,9 +1,46 @@
 # Changelog
 
+## [0.5.0] - 2026-09-26
+
+### Changed
+
+- Refresh stable NuGet dependencies; preserve target frameworks and HoneyDrunk public contracts.
+- Upgrade Resend 0.5.1 to 0.21.0 and Twilio 7.14.9 to 8.0.1. Validate the existing notification/provider test suites before release.
+
+| Dependency | Previous | Updated |
+| --- | --- | --- |
+| Azure.Storage.Queues | 12.26.0 | 12.27.1 |
+| Microsoft.Azure.Functions.Worker.Extensions.Storage.Queues | 5.5.4 | 5.5.5 |
+| Microsoft.Azure.Functions.Worker.Sdk | 2.0.7 | 2.1.0 |
+| Microsoft.CodeAnalysis.NetAnalyzers | 10.0.202 | 10.0.401 |
+| Microsoft.Extensions.Configuration.Binder | 10.0.8 | 10.0.12 |
+| Microsoft.Extensions.DependencyInjection | 10.0.8 | 10.0.12 |
+| Microsoft.Extensions.DependencyInjection.Abstractions | 10.0.8 | 10.0.12 |
+| Microsoft.Extensions.Hosting | 10.0.8 | 10.0.12 |
+| Microsoft.Extensions.Http | 10.0.8 | 10.0.12 |
+| Microsoft.Extensions.Logging.Abstractions | 10.0.8 | 10.0.12 |
+| Microsoft.Extensions.Options | 10.0.8 | 10.0.12 |
+| Resend | 0.5.1 | 0.21.0 |
+| Twilio | 7.14.9 | 8.0.1 |
+
+
 All notable changes to HoneyDrunk.Notify are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+
+
+### Verified HoneyDrunk dependencies
+
+- HoneyDrunk.Kernel: 0.8.0 -> 0.8.1 (verified on NuGet.org).
+- HoneyDrunk.Kernel.Abstractions: 0.8.0 -> 0.8.1 (verified on NuGet.org).
+- HoneyDrunk.Standards: 0.2.9 -> 0.3.0 (verified on NuGet.org).
+- HoneyDrunk.Standards.Tests: 0.2.9 -> 0.3.0 (verified on NuGet.org).
+- HoneyDrunk.Vault: 0.8.0 -> 0.8.1 (verified on NuGet.org).
+- HoneyDrunk.Vault.EventGrid: 0.8.0 -> 0.8.1 (verified on NuGet.org).
+- HoneyDrunk.Vault.Providers.AppConfiguration: 0.8.0 -> 0.8.1 (verified on NuGet.org).
+- HoneyDrunk.Vault.Providers.AzureKeyVault: 0.8.0 -> 0.8.1 (verified on NuGet.org).
 
 ## [Unreleased]
 
