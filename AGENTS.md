@@ -1,7 +1,9 @@
 # Agents — HoneyDrunk.Notify
 
-This file is for autonomous coding agents (Codex and other non-IDE agents) executing scoped
-tasks in `HoneyDrunk.Notify`, the Grid's **notification delivery** Node.
+This file is for every coding agent (Codex, Claude Code and others) working in
+`HoneyDrunk.Notify`, the Grid's **notification delivery** Node: intake, validation,
+rendering, provider dispatch, retry, queueing, delivery tracking. It is the single agent
+instruction file; there is no separate `CLAUDE.md`.
 
 ## Read This First
 
@@ -25,6 +27,15 @@ conventions. Read it before implementing. This file only states agent-execution 
 6. Run `dotnet build -c Release` and `dotnet test -c Release` locally. Analyzer compliance
    (`HoneyDrunk.Standards`) is mandatory; warnings are errors.
 7. Open a PR aligned to the acceptance criteria.
+
+## Interactive Sessions
+
+When working hands-on with a person rather than executing a scoped issue:
+
+- Plan and decompose before large edits.
+- Report build and test failures with their output.
+- ADR-0015: the deployables are **Notify.Functions** and **Notify.Worker**, on independent
+  tag lines.
 
 ## Do Not
 
