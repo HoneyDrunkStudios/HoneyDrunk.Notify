@@ -1,4 +1,4 @@
-# HoneyDrunk.Notify Repository Guidelines
+# HoneyDrunk.Notify engineering guide
 
 ## Project Overview
 
@@ -98,6 +98,8 @@ This is a hard expectation, not a nicety:
 
 ## Build and Testing
 
+Run these commands from `HoneyDrunk.Notify/` for code/build changes. Documentation-only changes need content/link validation.
+
 ```bash
 dotnet restore
 dotnet build -c Release
@@ -106,9 +108,9 @@ dotnet test -c Release --no-build
 
 - Targets **.NET 10.0**. Warnings are errors.
 - Tests live only in `*.Tests` / `*.IntegrationTests` — no test code in runtime/deployable
-  projects. Prefer **xUnit** + **FluentAssertions**.
+  projects. Prefer **xUnit** + **AwesomeAssertions**.
 - Test classes mirror implementation (`NotificationRouterTests`, `TemplateRendererTests`).
-- All code changes include tests unless the issue explicitly says otherwise.
+- Tests cover changed behavior; use the existing suite and add meaningful regression cases where needed.
 
 ---
 

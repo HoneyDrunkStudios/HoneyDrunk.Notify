@@ -8,13 +8,12 @@ instruction file; there is no separate `CLAUDE.md`.
 ## Read This First
 
 **The canonical engineering guide is
-[`.github/copilot-instructions.md`](.github/copilot-instructions.md)** — the single source of
-truth for stack, coding standards, boundaries, build/test, deployment, and commit
+[engineering guide](docs/engineering-guide.md)** — the maintained reference for stack, coding standards, boundaries, build/test, deployment, and commit
 conventions. Read it before implementing. This file only states agent-execution rules.
 
 ## Execution Rules
 
-1. Read the issue: task, acceptance criteria, constraints, dependencies.
+1. Read the selected request or issue: purpose, acceptance criteria, constraints and actual dependencies. No issue or packet is required.
 2. Confirm the work belongs in Notify (mechanics) and not in **Communications** (policy:
    preferences, cadence, suppression, orchestration). If it's policy, stop and flag it.
 3. Implement the smallest change that satisfies the acceptance criteria.
@@ -23,8 +22,8 @@ conventions. Read it before implementing. This file only states agent-execution 
    sibling types, and repo-level shared locations for existing behavior to reuse or extend.
    Prefer cohesive shared methods over one-off near-duplicates; justify intentional
    duplication in a comment when behavior must diverge. DRY/SOLID.
-5. Add or update tests (xUnit + FluentAssertions) unless the issue says otherwise.
-6. Run `dotnet build -c Release` and `dotnet test -c Release` locally. Analyzer compliance
+5. Add or update tests (xUnit + AwesomeAssertions) for changed behavior; documentation-only edits need content/link checks.
+6. From `HoneyDrunk.Notify/`, run `dotnet build -c Release` and `dotnet test -c Release` for code changes. Analyzer compliance
    (`HoneyDrunk.Standards`) is mandatory; warnings are errors.
 7. Open a PR aligned to the acceptance criteria.
 
@@ -52,3 +51,9 @@ When working hands-on with a person rather than executing a scoped issue:
 Conventional commits only: `feat:`, `fix:`, `chore:`, `docs:`, `test:`, `refactor:`,
 `ci:`, `build:` — optional scope (`fix(providers.resend):`), present tense, ≤ 50-char first
 line, `BREAKING CHANGE:` in the body when a public contract changes.
+
+## Shared conventions and delivery
+
+Read the [shared engineering conventions](https://github.com/HoneyDrunkStudios/HoneyDrunk.Standards/blob/main/HoneyDrunk.Standards/docs/CONVENTIONS.md) and this repository's owning documentation before editing. Apply the parts relevant to this stack; preserve existing public contracts, dependency direction and repository-specific behavior. Verify shared capabilities in current code before reusing them; a catalog entry or scaffold is not an implemented integration.
+
+Work within the selected request. Preserve unrelated changes and use a separate worktree when needed. Review the final diff, use Conventional Commits and ready-for-review PRs with exactly one accurate `Authorship:` line and a `Request:` line; include the authorship in commit trailers. Run meaningful checks for the affected behavior and report the reviewed/tested revision, failures and unrun checks. For documentation-only changes, check links, paths and instruction consistency. Preserve required checks and inspect actual latest-head Sonar new-code findings where analysis applies; do not suppress findings or weaken gates to obtain a pass. Legacy Grid Review is retired; do not restore its workers, queues or bypass labels. A configured replacement reviewer is not evidence of a completed review or enforcing merge check.
