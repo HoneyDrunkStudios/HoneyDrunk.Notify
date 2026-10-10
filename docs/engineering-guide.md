@@ -134,5 +134,5 @@ dotnet test -c Release --no-build
   (`feat(routing):`, `fix(providers.twilio):`). Present tense, concise first line (≤ 50 chars).
 - Breaking contract changes: note `BREAKING CHANGE:` in the commit body.
 - Keep PRs small and focused; align with the issue's acceptance criteria.
-- Run build + tests locally before pushing. Analyzer compliance is mandatory.
+- For code/build changes, run build + tests locally before pushing; analyzer compliance is mandatory. Documentation-only changes require content and link checks.
 - Respect `.gitignore` / `.gitleaks.toml` — never commit `bin/`, `obj/`, or secrets.
