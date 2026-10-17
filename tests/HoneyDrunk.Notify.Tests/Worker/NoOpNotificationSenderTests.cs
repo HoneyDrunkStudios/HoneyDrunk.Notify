@@ -6,7 +6,9 @@
 
 using HoneyDrunk.Notify.Abstractions;
 using HoneyDrunk.Notify.Worker.Hosting;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
+using NSubstitute;
 
 namespace HoneyDrunk.Notify.Tests.Worker;
 
@@ -16,6 +18,24 @@ namespace HoneyDrunk.Notify.Tests.Worker;
 /// </summary>
 public sealed class NoOpNotificationSenderTests
 {
+    [Fact]
+    public async Task SendAsync_LogsOnlyTheNotificationIdentifier()
+    {
+        var logger = Substitute.For<ILogger>();
+        var provider = Substitute.For<ILoggerProvider>();
+        provider.CreateLogger(Arg.Any<string>()).Returns(logger);
+        using var factory = LoggerFactory.Create(builder => builder.AddProvider(provider));
+        var envelope = EmailEnvelope();
+        var sender = new NoOpNotificationSender(factory.CreateLogger<NoOpNotificationSender>());
+
+        await sender.SendAsync(envelope);
+
+        var log = Assert.Single(logger.ReceivedCalls(), call => call.GetMethodInfo().Name == nameof(ILogger.Log));
+        var fields = Assert.IsAssignableFrom<IEnumerable<KeyValuePair<string, object?>>>(log.GetArguments()[2]);
+        Assert.Equal(new[] { "NotificationId", "{OriginalFormat}" }, fields.Select(field => field.Key));
+        Assert.Equal(envelope.NotificationId, fields.First().Value);
+    }
+
     [Fact]
     public async Task SendAsync_ReturnsPermanentFailure_WithNoopProvider()
     {
