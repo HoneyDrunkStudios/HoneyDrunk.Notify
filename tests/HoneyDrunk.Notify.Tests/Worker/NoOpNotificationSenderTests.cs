@@ -31,9 +31,15 @@ public sealed class NoOpNotificationSenderTests
         await sender.SendAsync(envelope);
 
         var log = Assert.Single(logger.ReceivedCalls(), call => call.GetMethodInfo().Name == nameof(ILogger.Log));
-        var fields = Assert.IsAssignableFrom<IEnumerable<KeyValuePair<string, object?>>>(log.GetArguments()[2]);
-        Assert.Equal(new[] { "NotificationId", "{OriginalFormat}" }, fields.Select(field => field.Key));
-        Assert.Equal(envelope.NotificationId, fields.First().Value);
+        var fields = Assert.IsType<IEnumerable<KeyValuePair<string, object?>>>(log.GetArguments()[2], exactMatch: false);
+        Assert.Collection(
+            fields,
+            field =>
+            {
+                Assert.Equal("NotificationId", field.Key);
+                Assert.Equal(envelope.NotificationId, field.Value);
+            },
+            field => Assert.Equal("{OriginalFormat}", field.Key));
     }
 
     [Fact]
