@@ -17,6 +17,7 @@ public readonly record struct TemplateKey
     /// </summary>
     /// <param name="value">The template key. Must be non-empty and at most 128 characters.</param>
     /// <exception cref="ArgumentException">Thrown when the value is null, empty, or exceeds the maximum length.</exception>
+    [System.Text.Json.Serialization.JsonConstructor]
     public TemplateKey(string value)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(value);

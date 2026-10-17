@@ -5,6 +5,7 @@ using HoneyDrunk.Notify.ProviderSupport;
 using HoneyDrunk.Vault.Abstractions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using System.Net;
 
 namespace HoneyDrunk.Notify.Providers.Email.Resend;
 
@@ -87,19 +88,16 @@ internal sealed partial class ResendNotificationSender(
                 message.TextBody = emailEnvelope.Content.Body;
             }
 
-            if (emailEnvelope.Headers is not null && message.Headers is not null)
+            if (emailEnvelope.Headers is not null)
             {
-                foreach (var (key, value) in emailEnvelope.Headers)
-                {
-                    message.Headers[key] = value;
-                }
+                message.Headers = new Dictionary<string, string>(emailEnvelope.Headers);
             }
 
             var response = await resendClient.EmailSendAsync(message, cancellationToken);
 
             if (!response.Success)
             {
-                var failureKind = response.Exception?.IsTransient is true
+                var failureKind = response.Exception is { } failure && IsTransient(failure)
                     ? FailureKind.Transient
                     : FailureKind.Permanent;
 
@@ -121,7 +119,7 @@ internal sealed partial class ResendNotificationSender(
                 ProviderName,
                 response.Content.ToString());
         }
-        catch (ResendException ex) when (ex.IsTransient)
+        catch (ResendException ex) when (IsTransient(ex))
         {
             LogTransientFailure(logger, ex, envelope.NotificationId, emailEnvelope.To);
 
@@ -146,6 +144,9 @@ internal sealed partial class ResendNotificationSender(
                 ex.Message);
         }
     }
+
+    private static bool IsTransient(ResendException exception) =>
+        exception.IsTransient || exception.StatusCode is HttpStatusCode.TooManyRequests or >= HttpStatusCode.InternalServerError;
 
     [LoggerMessage(
         Level = LogLevel.Error,
