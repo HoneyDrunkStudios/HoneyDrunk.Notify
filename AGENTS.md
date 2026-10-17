@@ -23,7 +23,7 @@ conventions. Read it before implementing. This file only states agent-execution 
    Prefer cohesive shared methods over one-off near-duplicates; justify intentional
    duplication in a comment when behavior must diverge. DRY/SOLID.
 5. Add or update tests (xUnit + AwesomeAssertions) for changed behavior; documentation-only edits need content/link checks.
-6. From `HoneyDrunk.Notify/`, run `dotnet build -c Release` and `dotnet test -c Release` for code changes. Analyzer compliance
+6. From the repository root, run `dotnet build -c Release` and `dotnet test -c Release` for code changes. Analyzer compliance
    (`HoneyDrunk.Standards`) is mandatory; warnings are errors.
 7. Open a PR aligned to the acceptance criteria.
 

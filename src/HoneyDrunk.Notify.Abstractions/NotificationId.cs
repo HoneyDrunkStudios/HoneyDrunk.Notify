@@ -14,6 +14,7 @@ public readonly record struct NotificationId
     /// Initializes a new instance of the <see cref="NotificationId"/> struct from a Ulid.
     /// </summary>
     /// <param name="value">The Ulid value.</param>
+    [System.Text.Json.Serialization.JsonConstructor]
     public NotificationId(Ulid value)
     {
         Value = value;

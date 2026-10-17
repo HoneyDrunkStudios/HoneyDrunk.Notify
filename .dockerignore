@@ -50,3 +50,8 @@
 **/coverlet.runsettings
 **/Dockerfile*
 **/.dockerignore
+
+# Repository-root context also excludes worktree metadata and local state.
+.git
+.local/
+artifacts/

@@ -13,14 +13,14 @@ package (`IsPackable=false`).
 Local development (from the repo root, requires the Azure Functions Core Tools):
 
 ```sh
-cd HoneyDrunk.Notify/HoneyDrunk.Notify.Functions
+cd src/HoneyDrunk.Notify.Functions
 func start
 ```
 
 Or build and run via the .NET SDK:
 
 ```sh
-dotnet run --project HoneyDrunk.Notify/HoneyDrunk.Notify.Functions
+dotnet run --project src/HoneyDrunk.Notify.Functions
 ```
 
 The queue trigger binds to the `NotifyQueueConnection` setting and the host

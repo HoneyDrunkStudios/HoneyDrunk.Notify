@@ -68,7 +68,7 @@ jobs:
       dotnet-version: '10.0.x'
       configuration: 'Release'
       runs-on: 'ubuntu-latest'
-      project-path: 'HoneyDrunk.Notify/HoneyDrunk.Notify.slnx'
+      project-path: 'HoneyDrunk.Notify.slnx'
       package-version: ${{ needs.prepare.outputs.version }}
       enable-nuget-pack: true
       enable-nuget-publish: false

@@ -10,9 +10,9 @@ Closes #8
 
 ## Validation
 
-- `dotnet build HoneyDrunk.Notify\HoneyDrunk.Notify.slnx -c Release --no-restore`
-- `dotnet test HoneyDrunk.Notify\HoneyDrunk.Notify.slnx -c Release --no-build --verbosity minimal`
-- `dotnet list HoneyDrunk.Notify\HoneyDrunk.Notify.slnx package --vulnerable --include-transitive`
+- `dotnet build HoneyDrunk.Notify.slnx -c Release --no-restore`
+- `dotnet test HoneyDrunk.Notify.slnx -c Release --no-build --verbosity minimal`
+- `dotnet list HoneyDrunk.Notify.slnx package --vulnerable --include-transitive`
 - `git diff --check`
 - lightweight secret pattern scan (gitleaks not installed locally; no matches)
 

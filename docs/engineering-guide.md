@@ -69,7 +69,7 @@ This is a hard expectation, not a nicety:
 
 ### Code Organization
 
-- No `/src` or `/tests` folders. Projects live at repo root under `HoneyDrunk.Notify/`.
+- Production projects live in `src/`, tests in `tests/`, and examples in `samples/`; the solution is at the repository root.
 - Organize the runtime by domain: `Intake/`, `Routing/`, `Templates/`, `Storage/`,
   `Diagnostics/`, `Options/`, `DependencyInjection/`.
 - Keep deployables (`Functions/`, `Worker/`) thin: composition + hosting only. Delivery
@@ -98,7 +98,7 @@ This is a hard expectation, not a nicety:
 
 ## Build and Testing
 
-Run these commands from `HoneyDrunk.Notify/` for code/build changes. Documentation-only changes need content/link validation.
+Run these commands from the repository root for code/build changes. Documentation-only changes need content/link validation.
 
 ```bash
 dotnet restore

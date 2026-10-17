@@ -13,7 +13,7 @@ CI only) with the Functions host as the active notify-queue dispatcher.
 ## How to run
 
 ```sh
-dotnet run --project HoneyDrunk.Notify/HoneyDrunk.Notify.Worker
+dotnet run --project src/HoneyDrunk.Notify.Worker
 ```
 
 The host resolves App Configuration and Key Vault at startup and binds the

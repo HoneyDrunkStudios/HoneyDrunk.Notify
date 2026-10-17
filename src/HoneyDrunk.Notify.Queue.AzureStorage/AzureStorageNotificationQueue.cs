@@ -26,6 +26,7 @@ internal sealed partial class AzureStorageNotificationQueue : INotificationQueue
     private readonly AzureStorageQueueOptions _options;
     private readonly ILogger<AzureStorageNotificationQueue> _logger;
     private readonly ISecretStore? _secretStore;
+    private readonly Func<string, string, QueueClient>? _clientFactory;
     private readonly SemaphoreSlim _initLock = new(1, 1);
     private QueueClient? _client;
     private QueueClient? _dlqClient;
@@ -49,6 +50,15 @@ internal sealed partial class AzureStorageNotificationQueue : INotificationQueue
         _options = options.Value;
         _logger = logger;
         _secretStore = secretStore;
+    }
+
+    internal AzureStorageNotificationQueue(
+        IOptions<AzureStorageQueueOptions> options,
+        ILogger<AzureStorageNotificationQueue> logger,
+        Func<string, string, QueueClient> clientFactory)
+        : this(options, logger)
+    {
+        _clientFactory = clientFactory ?? throw new ArgumentNullException(nameof(clientFactory));
     }
 
     /// <inheritdoc />
@@ -93,7 +103,7 @@ internal sealed partial class AzureStorageNotificationQueue : INotificationQueue
                 results.Add(new QueuedNotification(envelope, receipt, now, (int)msg.DequeueCount));
             }
 #pragma warning disable CA1031
-            catch (JsonException ex)
+            catch (Exception ex) when (ex is JsonException or ArgumentException)
 #pragma warning restore CA1031
             {
                 LogPoisonMessage(_logger, ex, msg.MessageId);
@@ -267,7 +277,7 @@ internal sealed partial class AzureStorageNotificationQueue : INotificationQueue
             return JsonSerializer.Deserialize<DeadLetterWrapper>(messageText, SerializerOptions);
         }
 #pragma warning disable CA1031
-        catch (JsonException)
+        catch (Exception ex) when (ex is JsonException or ArgumentException)
 #pragma warning restore CA1031
         {
             return null;
@@ -410,6 +420,11 @@ internal sealed partial class AzureStorageNotificationQueue : INotificationQueue
     private async Task<QueueClient> CreateQueueClientAsync(string queueName, CancellationToken cancellationToken)
     {
         var connectionString = await ResolveConnectionStringAsync(cancellationToken);
+        if (_clientFactory is not null)
+        {
+            return _clientFactory(connectionString, queueName);
+        }
+
         return new QueueClient(connectionString, queueName, new QueueClientOptions
         {
             MessageEncoding = QueueMessageEncoding.Base64,
