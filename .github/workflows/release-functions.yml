@@ -30,25 +30,25 @@ on:
     branches: [main]
     paths:
       # Own deployable source (the .Functions .csproj is covered by this glob).
-      - 'HoneyDrunk.Notify/HoneyDrunk.Notify.Functions/**'
+      - 'src/HoneyDrunk.Notify.Functions/**'
       # ProjectReference closure of the Functions binary.
-      - 'HoneyDrunk.Notify/HoneyDrunk.Notify/**'
-      - 'HoneyDrunk.Notify/HoneyDrunk.Notify.Abstractions/**'
-      - 'HoneyDrunk.Notify/HoneyDrunk.Notify.Hosting.AspNetCore/**'
-      - 'HoneyDrunk.Notify/HoneyDrunk.Notify.Providers.Email.Resend/**'
-      - 'HoneyDrunk.Notify/HoneyDrunk.Notify.Providers.Email.Smtp/**'
-      - 'HoneyDrunk.Notify/HoneyDrunk.Notify.Providers.Sms.Twilio/**'
+      - 'src/HoneyDrunk.Notify/**'
+      - 'src/HoneyDrunk.Notify.Abstractions/**'
+      - 'src/HoneyDrunk.Notify.Hosting.AspNetCore/**'
+      - 'src/HoneyDrunk.Notify.Providers.Email.Resend/**'
+      - 'src/HoneyDrunk.Notify.Providers.Email.Smtp/**'
+      - 'src/HoneyDrunk.Notify.Providers.Sms.Twilio/**'
       # Shared *source* (no .csproj; pulled in via <Compile Include>, which a
       # ProjectReference-only scan misses): HostBootstrap is compiled directly
       # into Functions & Worker; ProviderSupport is compiled into the Providers
       # this binary links. A change to either alters the deployed binary, so
       # both are in-closure and must redeploy on main.
-      - 'HoneyDrunk.Notify/HoneyDrunk.Notify.HostBootstrap/**'
-      - 'HoneyDrunk.Notify/HoneyDrunk.Notify.ProviderSupport/**'
+      - 'src/HoneyDrunk.Notify.HostBootstrap/**'
+      - 'src/HoneyDrunk.Notify.ProviderSupport/**'
       # Solution file, NuGet restore config, and the workflow itself — all
       # affect the published artifact.
-      - 'HoneyDrunk.Notify/HoneyDrunk.Notify.slnx'
-      - 'HoneyDrunk.Notify/NuGet.config'
+      - 'HoneyDrunk.Notify.slnx'
+      - 'NuGet.config'
       - '.github/workflows/release-functions.yml'
     tags:
       - 'functions-v*'
@@ -69,8 +69,8 @@ jobs:
       dotnet-version: '10.0.x'
       configuration: 'Release'
       runs-on: 'ubuntu-latest'
-      project-path: HoneyDrunk.Notify/HoneyDrunk.Notify.slnx
-      publish-project: HoneyDrunk.Notify/HoneyDrunk.Notify.Functions/HoneyDrunk.Notify.Functions.csproj
+      project-path: HoneyDrunk.Notify.slnx
+      publish-project: src/HoneyDrunk.Notify.Functions/HoneyDrunk.Notify.Functions.csproj
       publish-output: ./publish
       artifact-name: notify-functions
 

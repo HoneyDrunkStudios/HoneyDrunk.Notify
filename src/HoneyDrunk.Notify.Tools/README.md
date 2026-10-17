@@ -11,7 +11,7 @@ package (`IsPackable=false`).
 ## How to run
 
 ```sh
-dotnet run --project HoneyDrunk.Notify/HoneyDrunk.Notify.Tools -- dlq <command> [options]
+dotnet run --project src/HoneyDrunk.Notify.Tools -- dlq <command> [options]
 ```
 
 Commands:
@@ -28,6 +28,6 @@ require `--id <notificationId>`. Run with no valid verb to print full usage.
 Example:
 
 ```sh
-dotnet run --project HoneyDrunk.Notify/HoneyDrunk.Notify.Tools -- \
+dotnet run --project src/HoneyDrunk.Notify.Tools -- \
   dlq list --adapter AzureStorage --queue notify --connection "<cs>"
 ```

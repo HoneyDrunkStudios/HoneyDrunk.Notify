@@ -1,0 +1,42 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <LangVersion>latest</LangVersion>
+    <IsPackable>false</IsPackable>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <RunSettingsFilePath>../../coverlet.runsettings</RunSettingsFilePath>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\HoneyDrunk.Notify\HoneyDrunk.Notify.csproj" />
+    <ProjectReference Include="..\..\src\HoneyDrunk.Notify.Hosting.AspNetCore\HoneyDrunk.Notify.Hosting.AspNetCore.csproj" />
+    <ProjectReference Include="..\..\src\HoneyDrunk.Notify.Providers.Email.Resend\HoneyDrunk.Notify.Providers.Email.Resend.csproj" />
+    <ProjectReference Include="..\..\src\HoneyDrunk.Notify.Providers.Email.Smtp\HoneyDrunk.Notify.Providers.Email.Smtp.csproj" />
+    <ProjectReference Include="..\..\src\HoneyDrunk.Notify.Providers.Sms.Twilio\HoneyDrunk.Notify.Providers.Sms.Twilio.csproj" />
+    <ProjectReference Include="..\..\src\HoneyDrunk.Notify.Queue.AzureStorage\HoneyDrunk.Notify.Queue.AzureStorage.csproj" />
+    <ProjectReference Include="..\..\src\HoneyDrunk.Notify.Worker\HoneyDrunk.Notify.Worker.csproj" />
+    <ProjectReference Include="..\..\src\HoneyDrunk.Notify.Queue.InMemory\HoneyDrunk.Notify.Queue.InMemory.csproj" />
+    <ProjectReference Include="..\..\src\HoneyDrunk.Notify.Queue.Abstractions\HoneyDrunk.Notify.Queue.Abstractions.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="HoneyDrunk.Standards" Version="0.3.0">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="HoneyDrunk.Standards.Tests" Version="0.3.0" PrivateAssets="all" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Update="Microsoft.CodeAnalysis.NetAnalyzers" Version="10.0.401" />
+  </ItemGroup>
+
+</Project>

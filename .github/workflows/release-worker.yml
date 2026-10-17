@@ -43,26 +43,26 @@ on:
   #   branches: [main]
   #   paths:
   #     # Own deployable source (the .Worker .csproj and Dockerfile live here).
-  #     - 'HoneyDrunk.Notify/HoneyDrunk.Notify.Worker/**'
+  #     - 'src/HoneyDrunk.Notify.Worker/**'
   #     # ProjectReference closure (Hosting.AspNetCore pulls in core Notify +
   #     # Abstractions transitively, so both are in-closure).
-  #     - 'HoneyDrunk.Notify/HoneyDrunk.Notify.Hosting.AspNetCore/**'
-  #     - 'HoneyDrunk.Notify/HoneyDrunk.Notify/**'
-  #     - 'HoneyDrunk.Notify/HoneyDrunk.Notify.Abstractions/**'
-  #     - 'HoneyDrunk.Notify/HoneyDrunk.Notify.Providers.Email.Resend/**'
-  #     - 'HoneyDrunk.Notify/HoneyDrunk.Notify.Providers.Email.Smtp/**'
-  #     - 'HoneyDrunk.Notify/HoneyDrunk.Notify.Providers.Sms.Twilio/**'
-  #     - 'HoneyDrunk.Notify/HoneyDrunk.Notify.Queue.Abstractions/**'
-  #     - 'HoneyDrunk.Notify/HoneyDrunk.Notify.Queue.AzureStorage/**'
-  #     - 'HoneyDrunk.Notify/HoneyDrunk.Notify.Queue.InMemory/**'
+  #     - 'src/HoneyDrunk.Notify.Hosting.AspNetCore/**'
+  #     - 'src/HoneyDrunk.Notify/**'
+  #     - 'src/HoneyDrunk.Notify.Abstractions/**'
+  #     - 'src/HoneyDrunk.Notify.Providers.Email.Resend/**'
+  #     - 'src/HoneyDrunk.Notify.Providers.Email.Smtp/**'
+  #     - 'src/HoneyDrunk.Notify.Providers.Sms.Twilio/**'
+  #     - 'src/HoneyDrunk.Notify.Queue.Abstractions/**'
+  #     - 'src/HoneyDrunk.Notify.Queue.AzureStorage/**'
+  #     - 'src/HoneyDrunk.Notify.Queue.InMemory/**'
   #     # Shared *source* (no .csproj; pulled in via <Compile Include>):
   #     # HostBootstrap -> Functions & Worker; ProviderSupport -> Providers/Queue.
-  #     - 'HoneyDrunk.Notify/HoneyDrunk.Notify.HostBootstrap/**'
-  #     - 'HoneyDrunk.Notify/HoneyDrunk.Notify.ProviderSupport/**'
+  #     - 'src/HoneyDrunk.Notify.HostBootstrap/**'
+  #     - 'src/HoneyDrunk.Notify.ProviderSupport/**'
   #     # Solution file, NuGet restore config, Docker ignore rules, workflow.
-  #     - 'HoneyDrunk.Notify/HoneyDrunk.Notify.slnx'
-  #     - 'HoneyDrunk.Notify/NuGet.config'
-  #     - 'HoneyDrunk.Notify/.dockerignore'
+  #     - 'HoneyDrunk.Notify.slnx'
+  #     - 'NuGet.config'
+  #     - '.dockerignore'
   #     - '.github/workflows/release-worker.yml'
   #   tags:
   #     - 'worker-v*'
@@ -113,8 +113,8 @@ jobs:
     uses: HoneyDrunkStudios/HoneyDrunk.Actions/.github/workflows/job-deploy-container-app.yml@main
     with:
       environment: dev
-      build-context: HoneyDrunk.Notify
-      dockerfile: HoneyDrunk.Notify.Worker/Dockerfile
+      build-context: '.'
+      dockerfile: src/HoneyDrunk.Notify.Worker/Dockerfile
       image-name: honeydrunk-notify-worker
       # Dev images are SHA-identified (no version stamp), tagged dev-<sha>.
       image-tag: dev-${{ github.sha }}
@@ -175,8 +175,8 @@ jobs:
     uses: HoneyDrunkStudios/HoneyDrunk.Actions/.github/workflows/job-deploy-container-app.yml@main
     with:
       environment: staging
-      build-context: HoneyDrunk.Notify
-      dockerfile: HoneyDrunk.Notify.Worker/Dockerfile
+      build-context: '.'
+      dockerfile: src/HoneyDrunk.Notify.Worker/Dockerfile
       image-name: honeydrunk-notify-worker
       # SemVer tag is the version-of-record; the image carries it verbatim.
       image-tag: ${{ github.ref_name }}
@@ -246,8 +246,8 @@ jobs:
     uses: HoneyDrunkStudios/HoneyDrunk.Actions/.github/workflows/job-deploy-container-app.yml@main
     with:
       environment: prod
-      build-context: HoneyDrunk.Notify
-      dockerfile: HoneyDrunk.Notify.Worker/Dockerfile
+      build-context: '.'
+      dockerfile: src/HoneyDrunk.Notify.Worker/Dockerfile
       image-name: honeydrunk-notify-worker
       image-tag: ${{ github.ref_name }}
       acr-registry: ${{ needs.resolve-prod.outputs.acr-registry }}
