@@ -13,6 +13,33 @@ namespace HoneyDrunk.Notify.Tests.Providers;
 /// <summary>Verifies the Resend HTTP boundary without delivering real email.</summary>
 public sealed class ResendDeliveryTests
 {
+    /// <summary>Invalid message data is rejected before reading credentials or creating an HTTP client.</summary>
+    /// <param name="missingPayload">Whether to omit the email payload or provide an empty sender.</param>
+    /// <returns>The test task.</returns>
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task InvalidMessagesFailBeforeProviderAccess(bool missingPayload)
+    {
+        var factory = Substitute.For<IHttpClientFactory>();
+        var store = Substitute.For<ISecretStore>();
+        using var provider = CreateProvider(factory, store);
+        var sender = provider.GetRequiredKeyedService<INotificationSender>(NotificationChannel.Email);
+        var envelope = Envelope() with
+        {
+            Payload = missingPayload ? null : new EmailEnvelope("recipient@example.test", new EmailContent("Subject", "Body")) { From = string.Empty },
+        };
+
+        var outcome = await sender.SendAsync(envelope);
+
+        Assert.Equal(DeliveryStatus.Failed, outcome.Status);
+        Assert.Equal(FailureKind.Permanent, outcome.FailureKind);
+        Assert.Equal(envelope.NotificationId, outcome.NotificationId);
+        Assert.Contains(missingPayload ? "payload" : "sender address", outcome.ErrorMessage, StringComparison.Ordinal);
+        Assert.Empty(store.ReceivedCalls());
+        Assert.Empty(factory.ReceivedCalls());
+    }
+
     /// <summary>Checks sender overrides, body format and provider identifiers.</summary>
     /// <param name="html">Whether to send HTML with an explicit sender.</param>
     /// <returns>The test task.</returns>
