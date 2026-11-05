@@ -44,6 +44,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Update HoneyDrunk.Standards and HoneyDrunk.Standards.Tests to 0.4.1 to consume the architecture analyzer and TODO issue-link fixes.
+- Separate worker log-event generation from the polling service to satisfy HD0106 while preserving dispatch, settlement and log contracts.
+
 ### Added
 
 - Root `CHANGELOG.md` and package READMEs for the Notify Functions, Tools, and Worker hosts (2026-06-19 docs-sync remediation).
