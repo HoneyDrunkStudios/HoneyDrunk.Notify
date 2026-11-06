@@ -30,7 +30,7 @@ jobs:
         run: |
           docker save dependency-security:runtime --output image.tar
           docker run --rm --volume "$PWD:/work" aquasec/trivy@sha256:bcc376de8d77cfe086a917230e818dc9f8528e3c852f7b1aff648949b6258d1c image --input /work/image.tar --format json --output /work/container-scan.json --severity HIGH,CRITICAL --exit-code 1
-      - uses: actions/upload-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
         if: always()
         with:
           name: container-security-report
