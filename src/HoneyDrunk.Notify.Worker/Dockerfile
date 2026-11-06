@@ -1,6 +1,12 @@
 # Build context: repository root
 
 FROM mcr.microsoft.com/dotnet/runtime:10.0 AS base
+# CVE-2026-109518: bootstrap Ubuntu's APT fix with retries disabled, as Canonical recommends.
+RUN apt-get -o Acquire::Retries=0 update \
+    && apt-get -o Acquire::Retries=0 install -y --no-install-recommends --only-upgrade '?source-package(^apt$)' \
+    && dpkg --compare-versions "$(dpkg-query -W -f='${Version}' apt)" ge 2.8.4ubuntu0.1 \
+    && dpkg --compare-versions "$(dpkg-query -W -f='${Version}' libapt-pkg6.0t64)" ge 2.8.4ubuntu0.1 \
+    && rm -rf /var/lib/apt/lists/*
 # Run as a non-root user. The dotnet/runtime image does not define APP_UID (only dotnet/aspnet does),
 # so pin the UID explicitly to a non-root value. Linux's USER directive accepts numeric UIDs without
 # requiring a corresponding /etc/passwd entry.
@@ -8,6 +14,12 @@ USER 1654
 WORKDIR /app
 
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
+# CVE-2026-109518: bootstrap Ubuntu's APT fix with retries disabled, as Canonical recommends.
+RUN apt-get -o Acquire::Retries=0 update \
+    && apt-get -o Acquire::Retries=0 install -y --no-install-recommends --only-upgrade '?source-package(^apt$)' \
+    && dpkg --compare-versions "$(dpkg-query -W -f='${Version}' apt)" ge 2.8.4ubuntu0.1 \
+    && dpkg --compare-versions "$(dpkg-query -W -f='${Version}' libapt-pkg6.0t64)" ge 2.8.4ubuntu0.1 \
+    && rm -rf /var/lib/apt/lists/*
 ARG BUILD_CONFIGURATION=Release
 WORKDIR /workspace
 

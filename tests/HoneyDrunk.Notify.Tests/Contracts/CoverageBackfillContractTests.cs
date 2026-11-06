@@ -1,6 +1,4 @@
-// <copyright file="CoverageGateBackfillTests.cs" company="HoneyDrunk Studios">
 // Copyright (c) HoneyDrunk Studios. All rights reserved.
-// </copyright>
 
 using AwesomeAssertions;
 using HoneyDrunk.Notify.Abstractions;
