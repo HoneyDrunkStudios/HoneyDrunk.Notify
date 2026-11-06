@@ -72,6 +72,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Separate worker log-event generation from the polling service while preserving dispatch, settlement and all six structured log contracts. Retain the current Standards 0.4.4 references and published dependency versions.
+
 ### Added
 
 - Root `CHANGELOG.md` and package READMEs for the Notify Functions, Tools, and Worker hosts (2026-06-19 docs-sync remediation).
