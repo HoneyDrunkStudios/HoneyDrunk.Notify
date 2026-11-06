@@ -8,6 +8,7 @@ namespace HoneyDrunk.Notify.Functions;
 /// <summary>
 /// HTTP endpoint used by Event Grid to invalidate Vault cache entries after secret rotation.
 /// </summary>
+/// <param name="handler">The shared invalidation handler.</param>
 public sealed class VaultInvalidationFunction(VaultInvalidationFunctionHandler handler)
 {
     private readonly VaultInvalidationFunctionHandler _handler = handler ?? throw new ArgumentNullException(nameof(handler));

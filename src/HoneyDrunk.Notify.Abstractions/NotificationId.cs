@@ -61,12 +61,6 @@ public readonly record struct NotificationId
     public static NotificationId NewId() => new(Ulid.NewUlid());
 
     /// <summary>
-    /// Converts this NotificationId to a Ulid.
-    /// </summary>
-    /// <returns>The Ulid value.</returns>
-    public Ulid ToUlid() => Value;
-
-    /// <summary>
     /// Creates a NotificationId from a Ulid.
     /// </summary>
     /// <param name="ulid">The Ulid value.</param>
@@ -90,6 +84,12 @@ public readonly record struct NotificationId
         id = default;
         return false;
     }
+
+    /// <summary>
+    /// Converts this NotificationId to a Ulid.
+    /// </summary>
+    /// <returns>The Ulid value.</returns>
+    public Ulid ToUlid() => Value;
 
     /// <inheritdoc />
     public override string ToString() => Value.ToString();
