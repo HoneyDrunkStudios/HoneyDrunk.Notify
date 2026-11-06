@@ -59,12 +59,6 @@ public readonly record struct AttemptId
     public static AttemptId NewId() => new(Ulid.NewUlid());
 
     /// <summary>
-    /// Converts this AttemptId to a Ulid.
-    /// </summary>
-    /// <returns>The Ulid value.</returns>
-    public Ulid ToUlid() => Value;
-
-    /// <summary>
     /// Creates an AttemptId from a Ulid.
     /// </summary>
     /// <param name="ulid">The Ulid value.</param>
@@ -88,6 +82,12 @@ public readonly record struct AttemptId
         id = default;
         return false;
     }
+
+    /// <summary>
+    /// Converts this AttemptId to a Ulid.
+    /// </summary>
+    /// <returns>The Ulid value.</returns>
+    public Ulid ToUlid() => Value;
 
     /// <inheritdoc />
     public override string ToString() => Value.ToString();

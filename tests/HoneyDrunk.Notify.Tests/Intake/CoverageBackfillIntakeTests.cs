@@ -1,6 +1,4 @@
-// <copyright file="CoverageGateBackfillTests.cs" company="HoneyDrunk Studios">
 // Copyright (c) HoneyDrunk Studios. All rights reserved.
-// </copyright>
 
 using AwesomeAssertions;
 using HoneyDrunk.Kernel.Abstractions.Context;
@@ -17,9 +15,9 @@ using System.Diagnostics;
 
 namespace HoneyDrunk.Notify.Tests.Telemetry;
 
-/// <summary>
+/// <content>
 /// Focused coverage backfill for intake behavior.
-/// </summary>
+/// </content>
 public sealed partial class CoverageGateBackfillTests
 {
     /// <summary>

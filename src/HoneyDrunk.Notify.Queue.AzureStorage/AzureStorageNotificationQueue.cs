@@ -170,10 +170,12 @@ internal sealed partial class AzureStorageNotificationQueue : INotificationQueue
         if (response.Value is null || response.Value.Length == 0)
             return [];
 
-        return [.. response.Value
+        return [
+            .. response.Value
             .Select(msg => TryDeserializeWrapper(msg.MessageText))
             .Where(wrapper => wrapper is not null)
-            .Select(wrapper => WrapperToEntry(wrapper!))];
+            .Select(wrapper => WrapperToEntry(wrapper!))
+        ];
     }
 
     /// <inheritdoc />

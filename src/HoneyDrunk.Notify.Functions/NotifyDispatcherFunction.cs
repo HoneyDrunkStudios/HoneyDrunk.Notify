@@ -11,6 +11,8 @@ namespace HoneyDrunk.Notify.Functions;
 /// Deserializes the <see cref="NotificationEnvelope"/> and dispatches it
 /// through the core <see cref="NotificationDispatcher"/> retry engine.
 /// </summary>
+/// <param name="dispatcher">The notification dispatcher.</param>
+/// <param name="logger">The logger for this component.</param>
 public sealed partial class NotifyDispatcherFunction(
     NotificationDispatcher dispatcher,
     ILogger<NotifyDispatcherFunction> logger)

@@ -14,6 +14,7 @@ namespace HoneyDrunk.Notify.Functions;
 /// <c>/health/ready</c> — and returns 503 when the subsystem is
 /// <see cref="NotifyHealthStatus.Unhealthy"/>.
 /// </summary>
+/// <param name="evaluator">The notification health evaluator.</param>
 public sealed class HealthFunction(NotifyHealthEvaluator evaluator)
 {
     private readonly NotifyHealthEvaluator _evaluator =

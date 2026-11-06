@@ -15,6 +15,11 @@ namespace HoneyDrunk.Notify.Routing;
 /// Retry is owned by core runtime, not the worker. The worker simply calls
 /// <see cref="DispatchAsync"/> and receives the final outcome.
 /// </remarks>
+/// <param name="senderResolver">The resolver for the selected notification provider.</param>
+/// <param name="options">The configured component options.</param>
+/// <param name="backoffStrategy">The delivery retry backoff strategy.</param>
+/// <param name="timeProvider">The clock used for timestamps and scheduling.</param>
+/// <param name="logger">The logger for this component.</param>
 public sealed partial class NotificationDispatcher(
     INotificationSenderResolver senderResolver,
     IOptions<NotifyRuntimeOptions> options,

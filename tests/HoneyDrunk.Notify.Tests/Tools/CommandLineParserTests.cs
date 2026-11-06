@@ -1,6 +1,4 @@
-// <copyright file="CommandLineParserTests.cs" company="HoneyDrunk Studios">
 // Copyright (c) HoneyDrunk Studios. All rights reserved.
-// </copyright>
 
 #pragma warning disable SA1600 // Test methods are self-documenting via [Fact] + method name.
 #pragma warning disable SA1515 // Inline test comments allowed.
