@@ -146,3 +146,31 @@ After a solution restore, explicitly restore the host project before a no-restor
 Before deployment, independently verify that the Azure app uses the .NET 11 isolated-worker stack and a supported hosting plan. Linux Consumption does not support .NET 10 or later. Local unit tests do not verify cloud configuration or live providers. See the [isolated worker guide](https://learn.microsoft.com/en-us/azure/azure-functions/dotnet-isolated-process-guide).
 
 Contract-only Abstractions projects retain `net10.0` alongside `net11.0` for existing consumers. Runtime, hosts, samples and tests use .NET 11.
+
+## Functions self-contained deployment package
+
+The Functions release builds a Linux x64 self-contained package with the pinned
+.NET 11.0.100 SDK and `Azure.Functions.Sdk/1.0.1`. The Functions SDK generates an
+apphost worker entry point when `SelfContained=true`; no preview roll-forward,
+NativeAOT, trimming, or custom startup command is used. This bundles the GA runtime
+instead of depending on its presence in the Azure worker image.
+
+The shared publish job creates `notify-functions.zip` on Linux before artifact
+upload. Every existing deployment stage consumes that same ZIP unchanged, retaining
+the apphost's executable bit and `.azurefunctions` directory. Do not replace this
+with loose-file artifact upload, which normalizes executable files to mode 0644.
+`no-build: false` is intentional: publishing restores/builds the Linux RID assets
+after the normal solution build and tests.
+
+Self-contained publishing does not update the Azure app's runtime configuration or
+prove compatibility with the serving host. Before any rollout, verify the target
+is a supported .NET 11 isolated-worker Linux x64 Flex app and validate startup and
+health in dev. Existing staging/production gates and the separate Worker release
+remain unchanged.
+
+The bundled runtime does not automatically inherit Azure's runtime security
+patches. Servicing requires updating the SDK/runtime, rebuilding, testing and
+republishing the package. This change creates no ongoing servicing automation.
+See [the Functions SDK](https://www.nuget.org/packages/Azure.Functions.Sdk/1.0.1),
+[.NET deployment](https://learn.microsoft.com/en-us/dotnet/core/deploying/), and
+[artifact permission loss](https://github.com/actions/upload-artifact#permission-loss).

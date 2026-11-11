@@ -64,14 +64,19 @@ jobs:
     name: Build Function App
     permissions:
       contents: read
-    uses: HoneyDrunkStudios/HoneyDrunk.Actions/.github/workflows/job-dotnet-publish-artifact.yml@main
+    uses: HoneyDrunkStudios/HoneyDrunk.Actions/.github/workflows/job-dotnet-publish-artifact.yml@d3a8f2f93f53cffd9c6635b825353999ba05a983
     with:
+      actions-ref: d3a8f2f93f53cffd9c6635b825353999ba05a983
       dotnet-version: '11.0.100'
       configuration: 'Release'
       runs-on: 'ubuntu-latest'
       project-path: HoneyDrunk.Notify.slnx
       publish-project: src/HoneyDrunk.Notify.Functions/HoneyDrunk.Notify.Functions.csproj
       publish-output: ./publish
+      runtime-identifier: linux-x64
+      self-contained: true
+      no-build: false
+      package-file: notify-functions.zip
       artifact-name: notify-functions
 
   # ============================ DEV (continuous) ============================
@@ -109,11 +114,13 @@ jobs:
     concurrency:
       group: release-functions-dev
       cancel-in-progress: true
-    uses: HoneyDrunkStudios/HoneyDrunk.Actions/.github/workflows/job-deploy-function.yml@main
+    uses: HoneyDrunkStudios/HoneyDrunk.Actions/.github/workflows/job-deploy-function.yml@d3a8f2f93f53cffd9c6635b825353999ba05a983
     with:
       environment: dev
+      actions-ref: d3a8f2f93f53cffd9c6635b825353999ba05a983
       artifact-name: notify-functions
       package-path: ./publish
+      package-file: notify-functions.zip
       functions-app: ${{ needs.resolve-dev.outputs.functions-app }}
       resource-group: ${{ needs.resolve-dev.outputs.resource-group }}
       azure-client-id: ${{ needs.resolve-dev.outputs.azure-client-id }}
@@ -164,11 +171,13 @@ jobs:
     concurrency:
       group: release-functions-staging
       cancel-in-progress: false
-    uses: HoneyDrunkStudios/HoneyDrunk.Actions/.github/workflows/job-deploy-function.yml@main
+    uses: HoneyDrunkStudios/HoneyDrunk.Actions/.github/workflows/job-deploy-function.yml@d3a8f2f93f53cffd9c6635b825353999ba05a983
     with:
       environment: staging
+      actions-ref: d3a8f2f93f53cffd9c6635b825353999ba05a983
       artifact-name: notify-functions
       package-path: ./publish
+      package-file: notify-functions.zip
       functions-app: ${{ needs.resolve-staging.outputs.functions-app }}
       resource-group: ${{ needs.resolve-staging.outputs.resource-group }}
       azure-client-id: ${{ needs.resolve-staging.outputs.azure-client-id }}
@@ -229,11 +238,13 @@ jobs:
     concurrency:
       group: release-functions-prod
       cancel-in-progress: false
-    uses: HoneyDrunkStudios/HoneyDrunk.Actions/.github/workflows/job-deploy-function.yml@main
+    uses: HoneyDrunkStudios/HoneyDrunk.Actions/.github/workflows/job-deploy-function.yml@d3a8f2f93f53cffd9c6635b825353999ba05a983
     with:
       environment: prod
+      actions-ref: d3a8f2f93f53cffd9c6635b825353999ba05a983
       artifact-name: notify-functions
       package-path: ./publish
+      package-file: notify-functions.zip
       functions-app: ${{ needs.resolve-prod.outputs.functions-app }}
       resource-group: ${{ needs.resolve-prod.outputs.resource-group }}
       azure-client-id: ${{ needs.resolve-prod.outputs.azure-client-id }}
