@@ -1,7 +1,6 @@
 using HoneyDrunk.Notify.Abstractions;
 using HoneyDrunk.Notify.Routing;
 using Microsoft.Azure.Functions.Worker;
-using Microsoft.Extensions.Logging;
 using System.Text.Json;
 
 namespace HoneyDrunk.Notify.Functions;

@@ -180,6 +180,39 @@ public sealed class DlqCommandsTests
         Assert.Contains("missing", stderr.ToString());
     }
 
+    [Theory]
+    [InlineData("peek")]
+    [InlineData("replay")]
+    [InlineData("purge")]
+    public async Task MissingEntry_CanceledErrorOutput_PropagatesCancellation(string command)
+    {
+        using var stdout = new StringWriter();
+        using var stderr = new StringWriter();
+        var originalOut = Console.Out;
+        var originalError = Console.Error;
+        using var cancellation = new CancellationTokenSource();
+        await cancellation.CancelAsync();
+
+        try
+        {
+            var commands = CreateCommands(new FakeInspector(), stdout, stderr);
+            Func<Task> action = command switch
+            {
+                "peek" => () => commands.PeekAsync("missing", cancellation.Token),
+                "replay" => () => commands.ReplayAsync("missing", new NotifyToolsOptions(), cancellation.Token),
+                _ => () => commands.PurgeAsync("missing", new NotifyToolsOptions(), cancellation.Token),
+            };
+
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(action);
+            Assert.Equal(string.Empty, stderr.ToString());
+        }
+        finally
+        {
+            Console.SetOut(originalOut);
+            Console.SetError(originalError);
+        }
+    }
+
     private static DlqCommands CreateCommands(IDeadLetterInspector inspector, StringWriter stdout, StringWriter stderr)
     {
         Console.SetOut(stdout);

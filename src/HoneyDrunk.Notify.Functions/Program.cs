@@ -14,9 +14,6 @@ using HoneyDrunk.Vault.EventGrid.Extensions;
 using HoneyDrunk.Vault.Providers.AppConfiguration.Extensions;
 using HoneyDrunk.Vault.Providers.AzureKeyVault.Extensions;
 using Microsoft.Azure.Functions.Worker.Builder;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
 using GridEnvironments = HoneyDrunk.Kernel.Abstractions.Environments;
 
 var builder = FunctionsApplication.CreateBuilder(args);
