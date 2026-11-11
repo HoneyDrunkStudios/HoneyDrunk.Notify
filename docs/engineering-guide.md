@@ -10,7 +10,7 @@ delivery tracking.
 and communication orchestration live in **HoneyDrunk.Communications**. Callers invoke Notify
 *after* those decisions are made. Keep that boundary intact — see "Boundaries" below.
 
-This is a **.NET 10.0** solution composed of (selected projects):
+This is a **.NET 11.0** solution composed of (selected projects):
 
 - `HoneyDrunk.Notify.Abstractions` — contracts and models (contracts-only)
 - `HoneyDrunk.Notify` — runtime: intake, routing, templates, storage, diagnostics
@@ -28,7 +28,7 @@ tag lines per ADR-0015 (`functions-v*`, `worker-v*`).
 
 ## Technology Stack
 
-- **Framework:** .NET 10.0
+- **Framework:** .NET 11.0
 - **Language:** C# (`LangVersion` latest)
 - **Project Types:** Class libraries + Azure Functions + Worker + xUnit test projects
 - **Features Enabled:** Implicit Usings, Nullable Reference Types, primary constructors,
@@ -106,7 +106,7 @@ dotnet build -c Release
 dotnet test -c Release --no-build
 ```
 
-- Targets **.NET 10.0**. Warnings are errors.
+- Targets **.NET 11.0**. Warnings are errors.
 - Tests live only in `*.Tests` / `*.IntegrationTests` — no test code in runtime/deployable
   projects. Prefer **xUnit** + **AwesomeAssertions**.
 - Test classes mirror implementation (`NotificationRouterTests`, `TemplateRendererTests`).
@@ -136,3 +136,13 @@ dotnet test -c Release --no-build
 - Keep PRs small and focused; align with the issue's acceptance criteria.
 - For code/build changes, run build + tests locally before pushing; analyzer compliance is mandatory. Documentation-only changes require content and link checks.
 - Respect `.gitignore` / `.gitleaks.toml` — never commit `bin/`, `obj/`, or secrets.
+
+## .NET 11 Functions migration
+
+The Functions host uses `Azure.Functions.Sdk/1.0.1` with the existing explicit Worker 2.52.0 and trigger/binding references. The new SDK owns the executable output type, Functions v4 setting, metadata generation, and worker indexing; do not re-add the former Worker.Sdk package.
+
+After a solution restore, explicitly restore the host project before a no-restore build if the SDK reports AZFW0108. Do not edit or build its generated `obj/azure_functions/azure_functions.g.csproj` directly.
+
+Before deployment, independently verify that the Azure app uses the .NET 11 isolated-worker stack and a supported hosting plan. Linux Consumption does not support .NET 10 or later. Local unit tests do not verify cloud configuration or live providers. See the [isolated worker guide](https://learn.microsoft.com/en-us/azure/azure-functions/dotnet-isolated-process-guide).
+
+Contract-only Abstractions projects retain `net10.0` alongside `net11.0` for existing consumers. Runtime, hosts, samples and tests use .NET 11.
