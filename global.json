@@ -3,5 +3,8 @@
     "version": "11.0.100",
     "rollForward": "latestPatch",
     "allowPrerelease": false
+  },
+  "msbuild-sdks": {
+    "Azure.Functions.Sdk": "1.0.1"
   }
 }

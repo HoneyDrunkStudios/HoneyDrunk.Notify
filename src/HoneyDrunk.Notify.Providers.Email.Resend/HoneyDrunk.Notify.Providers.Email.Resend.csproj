@@ -36,6 +36,8 @@
     <PackageReference Include="HoneyDrunk.Vault" Version="0.8.2" />
     <PackageReference Include="Microsoft.Extensions.Http" Version="11.0.0" />
     <PackageReference Include="Resend" Version="0.24.0" />
+    <!-- Keep Resend's transitive dependency on the patched 10.0 servicing line (GHSA-x33c-w48q-qrgc). -->
+    <PackageReference Include="Microsoft.AspNetCore.WebUtilities" Version="10.0.15" />
   </ItemGroup>
 
   <ItemGroup>
