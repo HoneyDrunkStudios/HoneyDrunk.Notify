@@ -36,7 +36,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Update="Microsoft.CodeAnalysis.NetAnalyzers" Version="10.0.403" />
+    <PackageReference Update="Microsoft.CodeAnalysis.NetAnalyzers" Version="11.0.100" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="..\..\src\HoneyDrunk.Notify.ProviderSupport\SecretStoreExtensions.cs" Link="ProviderSupport\SecretStoreExtensions.cs" />
